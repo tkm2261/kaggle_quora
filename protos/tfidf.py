@@ -183,14 +183,14 @@ def _train(count_mat, tfidf_mat, df, map_train):
     wt1 = tfidf_vec1.sum(axis=1)
     wt2 = tfidf_vec2.sum(axis=1)
 
+    wt1_rate = wt1 / won1
+    wt2_rate = wt2 / won2
+
     tmp = tfidf_vec1.multiply(tfidf_vec2)
     tmp = numpy.sqrt(tmp)
     max_tfidf = tmp.max(axis=1).todense()
     sum_tfidf = tmp.sum(axis=1)
     tfidf_rate = sum_tfidf / (wt1 + wt2)
-
-    tmp = -1 * tmp
-    min_tfidf = tmp.max(axis=1).todense() * -1
 
     same_w1 = tfidf_vec1.multiply(count_vec2).sum(axis=1)
     same_w2 = tfidf_vec2.multiply(count_vec1).sum(axis=1)
@@ -203,14 +203,14 @@ def _train(count_mat, tfidf_mat, df, map_train):
     wi1 = idf_vec1.sum(axis=1)
     wi2 = idf_vec2.sum(axis=1)
 
+    wi1_rate = wi1 / won1
+    wi2_rate = wi2 / won2
+
     tmp = idf_vec1.multiply(idf_vec2)
     tmp = numpy.sqrt(tmp)
     max_idf = tmp.max(axis=1).todense()
     sum_idf = tmp.sum(axis=1)
     idf_rate = sum_idf / (wi1 + wi2)
-
-    tmp = -1 * tmp
-    min_idf = tmp.max(axis=1).todense() * -1
 
     same_wi1 = idf_vec1.multiply(count_vec2).sum(axis=1)
     same_wi2 = idf_vec2.multiply(count_vec1).sum(axis=1)
@@ -219,13 +219,13 @@ def _train(count_mat, tfidf_mat, df, map_train):
 
     data = numpy.concatenate([wn1, wn2, same_num, same_rate,
                               won1, won2, same_orig1, same_orig2, same_orig_rate,
-                              wt1, wt2, max_tfidf, min_tfidf, sum_tfidf, tfidf_rate, same_w1, same_w2, tfidf_rate_dup,
-                              wi1, wi2, max_idf, min_idf, sum_idf, idf_rate, same_wi1, same_wi2, idf_rate_dup
+                              wt1, wt2, wt1_rate, wt2_rate, max_tfidf, sum_tfidf, tfidf_rate, same_w1, same_w2, tfidf_rate_dup,
+                              wi1, wi2, wi1_rate, wi2_rate, max_idf, sum_idf, idf_rate, same_wi1, same_wi2, idf_rate_dup
                               ], axis=1)
     return pandas.DataFrame(data, columns=['wn1', 'wn2', 'same_num', 'same_rate',
                                            'won1', 'won2', 'same_orig1', 'same_orig2', 'same_orig_rate',
-                                           'wt1', 'wt2', 'max_tfidf', 'min_tfidf', 'sum_tfidf', 'rate_tfidf', 'same_w1', 'same_w2', 'tfidf_rate_dup',
-                                           'wi1', 'wi2', 'max_idf', 'min_idf', 'sum_idf', 'rate_idf', 'same_wi1', 'same_wi2', 'idf_rate_dup',
+                                           'wt1', 'wt2', 'wt1', 'wt2', 'max_tfidf',  'sum_tfidf', 'rate_tfidf', 'same_w1', 'same_w2', 'tfidf_rate_dup',
+                                           'wi1', 'wi2', 'wi1', 'wi2', 'max_idf',  'sum_idf', 'rate_idf', 'same_wi1', 'same_wi2', 'idf_rate_dup',
                                            ])
 
 
@@ -324,5 +324,5 @@ if __name__ == '__main__':
     logger.setLevel('INFO')
     logger.addHandler(handler)
 
-    load_data()
+    # load_data()
     train()

@@ -22,7 +22,7 @@ if __name__ == '__main__':
     from logging import StreamHandler, DEBUG, Formatter, FileHandler
 
     log_fmt = Formatter('%(asctime)s %(name)s %(lineno)d [%(levelname)s][%(funcName)s] %(message)s ')
-    handler = FileHandler('make_data.log', 'w')
+    handler = FileHandler('vec100/make_train.py.log', 'w')
     handler.setLevel(DEBUG)
     handler.setFormatter(log_fmt)
     logger.setLevel(DEBUG)
@@ -34,7 +34,7 @@ if __name__ == '__main__':
     logger.setLevel('INFO')
     logger.addHandler(handler)
 
-    df = pandas.read_csv('../data/test.csv').fillna('')
+    df = pandas.read_csv('../data/train.csv').fillna('')
     p = Pool()
     text_vet1 = p.map(_split_into_words, enumerate(df['question1'].values))
     text_vet2 = p.map(_split_into_words, enumerate(df['question2'].values))
@@ -48,5 +48,5 @@ if __name__ == '__main__':
     mat3 = cos_sim(mat1, mat2)
     logger.info('cos end')
     data = numpy.c_[mat1, mat2, mat3]
-    with open('test_data.pkl', 'wb') as f:
-        pickle.dump(data, f, -1)
+    with open('train_data.pkl', 'wb') as f:
+        pickle.dump((data, df['is_duplicate'].values), f, -1)

@@ -27,19 +27,18 @@ if __name__ == '__main__':
     logger.addHandler(handler)
 
     #df_mst = pandas.read_csv('doc_vec.csv').set_index('qid')
-    with open('doc_vec.pkl', 'rb') as f:
+    with open('doc_vec_test.pkl', 'rb') as f:
         df_mst = pickle.load(f)
     df_mst = df_mst.drop_duplicates('question').set_index('question')  # .groupby('question').max()
 
-    df = pandas.read_csv('../data/train.csv')[['is_duplicate', 'question1', 'question2']].fillna('')
+    df = pandas.read_csv('../data/test.csv')[['question1', 'question2']].fillna('')
 
     logger.info('load end {}'.format(df.shape))
     cols = list(range(100))
     mat1 = pandas.merge(df[['question1']], df_mst, how='left', left_on='question1', right_index=True)[
-        cols]  # df_mst.ix[df['question1'].values][cols].values
-
+        cols]  # .values  # df_mst.ix[df['question1'].values][cols].values
     mat2 = pandas.merge(df[['question2']], df_mst, how='left', left_on='question2', right_index=True)[
-        cols]  # df_mst.ix[df['question2'].values][cols].values
+        cols]  # .values  # df_mst.ix[df['question2'].values][cols].values
     logger.info('mat {} {}'.format(mat1.shape, mat2.shape))
     logger.info('mat drop  {} {}'.format(mat1.dropna().shape, mat2.dropna().shape))
     mat1 = mat1.values
@@ -50,6 +49,6 @@ if __name__ == '__main__':
     logger.info('cos end')
     data = numpy.c_[mat1, mat2, mat3]
     logger.info('mat {}'.format(data.shape))
-    label = df['is_duplicate'].values
-    with open('train_data.pkl', 'wb') as f:
-        pickle.dump((data, label), f, -1)
+
+    with open('test_data.pkl', 'wb') as f:
+        pickle.dump(data, f, -1)

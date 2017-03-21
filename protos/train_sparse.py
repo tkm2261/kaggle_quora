@@ -45,47 +45,30 @@ if __name__ == '__main__':
     """
     x = pd.read_csv('kernel_train.csv').values
     x_train = pd.read_csv('count_tfidf_train.csv').values
-    x_train = np.c_[x_train, x]
-    x = pd.read_csv('lda_train.csv').values
-    x_train = np.c_[x_train, x]
-    """
-    with open('train_data.pkl', 'rb') as f:
-        x, y = pickle.load(f)
-        x[np.isnan(x)] = 0
-    x_train = np.c_[x_train, x]
-    """
-    with open('train_idf_20.pkl', 'rb') as f:
-        x = np.asarray(pickle.load(f).todense())
-    x_train = np.c_[x_train, x]
-    with open('train_cnt_20.pkl', 'rb') as f:
-        x = np.asarray(pickle.load(f).todense())
-    x_train = np.c_[x_train, x]
-    with open('train_tfidf_20.pkl', 'rb') as f:
-        x = np.asarray(pickle.load(f).todense())
-    x_train = np.c_[x_train, x]
 
-    x_test = pd.read_csv('count_tfidf_test.csv').values
-    x = pd.read_csv('kernel_test.csv').values
-    x_test = np.c_[x_test, x]
-    x = pd.read_csv('lda_test.csv').values
-    x_test = np.c_[x_test, x]
+    """with open('count_mat.pkl', 'rb') as f:
+        count_mat = pickle.load(f)
+    logger.info('count_mat {}'.format(count_mat.shape))
+    with open('tfidf_mat.pkl', 'rb') as f:
+        tfidf_mat = pickle.load(f)
+    logger.info('tfidf_mat {}'.format(tfidf_mat.shape))
+    train_num = x_train.shape[0]
 
-    with open('test_idf_20.pkl', 'rb') as f:
-        x = np.asarray(pickle.load(f).todense())
-    x_test = np.c_[x_test, x]
-    with open('test_cnt_20.pkl', 'rb') as f:
-        x = np.asarray(pickle.load(f).todense())
-    x_test = np.c_[x_test, x]
-    with open('test_tfidf_20.pkl', 'rb') as f:
-        x = np.asarray(pickle.load(f).todense())
-    x_test = np.c_[x_test, x]
+    from scipy.sparse import hstack
+    #from tffm import TFFMClassifier
+    #import tensorflow as tf
 
+    x_train = hstack([count_mat[:train_num], tfidf_mat[:train_num]], format='csr')
+    x_test = hstack([count_mat[train_num:], tfidf_mat[train_num:]], format='csr')
     """
-    with open('test_data.pkl', 'rb') as f:
-        x = pickle.load(f)
-        x[np.isnan(x)] = 0
-    x_test = np.c_[x_test, x]
-    """
+
+    with open('train_sparse.pkl', 'rb') as f:
+        idf, count, tfidf = pickle.load(f)
+        x_train = tfidf
+    with open('test_sparse.pkl', 'rb') as f:
+        idf, count, tfidf = pickle.load(f)
+        x_test = tfidf
+
     """
     x_train = x_train.values
     x_test = x_test.values
@@ -110,9 +93,8 @@ if __name__ == '__main__':
                   'learning_rate': [0.06],  # [0.06, 0.1, 0.2],
                   'n_estimators': [10000],
                   'min_child_weight': [3],
-                  'colsample_bytree': [0.7],
+                  'colsample_bytree': [0.5],
                   'boosting_type': ['gbdt'],
-                  'num_leaves': [150],
                   'subsample': [0.9],
                   'min_child_samples': [10],
                   #'num_leaves': [300],
@@ -155,11 +137,10 @@ if __name__ == '__main__':
                     early_stopping_rounds=300
                     )
             pred = clf.predict_proba(val_x)[:, 1]
-            with open('tfidf_val.pkl', 'wb') as f:
+            with open('sparse_val.pkl', 'wb') as f:
                 pickle.dump((pred, val_y, val_w), f, -1)
-
-            _score = log_loss(val_y, clf.predict_proba(val_x)[:, 1], sample_weight=val_w)
-            _score2 = - roc_auc_score(val_y, clf.predict_proba(val_x)[:, 1], sample_weight=val_w)
+            _score = log_loss(val_y, pred, sample_weight=val_w)
+            _score2 = - roc_auc_score(val_y, pred, sample_weight=val_w)
             # logger.debug('   _score: %s' % _score)
             list_score.append(_score)
             list_score2.append(_score2)
@@ -167,6 +148,15 @@ if __name__ == '__main__':
                 list_best_iter.append(clf.best_iteration)
             else:
                 list_best_iter.append(params['n_estimators'])
+            imp = pd.DataFrame(clf.feature_importances_, columns=['imp'])
+            imp_use = imp[imp['imp'] > 0].sort_values('imp', ascending=False)
+            logger.info('imp use {}'.format(imp_use.shape))
+            with open('features_tfidf.py', 'w') as f:
+                f.write('FEATURE = [' + ','.join(map(str, imp_use.index.values)) + ']\n')
+            with open('train_tfidf_10.pkl', 'wb') as f:
+                pickle.dump(x_train[:, imp_use.index.values[:10]], f, -1)
+            with open('test_tfidf_10.pkl', 'wb') as f:
+                pickle.dump(x_test[:, imp_use.index.values[:10]], f, -1)
             break
         logger.info('trees: {}'.format(list_best_iter))
         params['n_estimators'] = np.mean(list_best_iter, dtype=int)

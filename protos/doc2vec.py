@@ -47,7 +47,8 @@ def load_data():
     df2.columns = ['qid', 'question']
 
     df_que = pandas.concat([df1, df2], ignore_index=True)
-    df_que = df_que.drop_duplicates().dropna().sort_values('qid')
+    df_que = df_que.drop_duplicates().fillna('').sort_values('qid')
+    df_que['qid'] = ['TRAIN_%s' % i for i in df_que['qid']]
 
     df = pandas.read_csv('../data/test.csv')
     df1 = df[['question1']]
@@ -55,8 +56,8 @@ def load_data():
     df2 = df[['question2']]
     df2.columns = ['question']
     df_que2 = pandas.concat([df1, df2], ignore_index=True)
-    df_que2 = df_que2.drop_duplicates().dropna()
-    df_que2['qid'] = numpy.arange(df_que2.shape[0]) + df_que.shape[0]
+    df_que2 = df_que2.drop_duplicates().fillna('')
+    df_que2['qid'] = ['TEST_%s' % i for i in numpy.arange(df_que2.shape[0])]
 
     df_que = pandas.concat([df_que, df_que2], ignore_index=True)
     logger.info('df_que {}'.format(df_que.shape))
@@ -78,8 +79,8 @@ def train():
 
     model = models.Doc2Vec(sentences,
                            dm=0,
-                           size=300,
-                           window=15,
+                           size=100,
+                           window=5,
                            alpha=.025,
                            min_alpha=.025,
                            min_count=3,
@@ -97,7 +98,7 @@ def train():
         model.train(sentences)
         model.alpha -= (0.025 - 0.0001) / 19
         model.min_alpha = model.alpha
-    model.save('doc2vec.model')
+        model.save('doc2vec.model')
 
     return model
 
@@ -118,7 +119,7 @@ if __name__ == '__main__':
     logger.addHandler(handler)
 
     # load_data()
-    train()
+    # train()
     # with open('corpus.pkl', 'rb') as f:
     #    sentences = pickle.load(f)
 
@@ -130,14 +131,33 @@ if __name__ == '__main__':
     df2.columns = ['qid', 'question']
 
     df_que = pandas.concat([df1, df2], ignore_index=True)
-    df_que = df_que.drop_duplicates().dropna().sort_values('qid')
+    df_que = df_que.drop_duplicates().fillna('').sort_values('qid')
+    df_que['qid'] = ['TRAIN_%s' % i for i in df_que['qid']]
     logger.info('df_que {}'.format(df_que.shape))
 
     model = models.Doc2Vec.load('doc2vec.model')
-    df_vec = pandas.DataFrame(numpy.array([model.docvecs[int(qid)] for qid in df_que['qid'].values]))
+
+    df_vec = pandas.DataFrame(numpy.array([model.docvecs[qid] for qid in df_que['qid'].values]))
     df_vec['qid'] = df_que['qid'].values
     df_vec['question'] = df_que['question'].values
 
     #df_vec.to_csv('doc_vec.csv', index=False)
     with open('doc_vec.pkl', 'wb') as f:
+        pickle.dump(df_vec, f, -1)
+
+    df = pandas.read_csv('../data/test.csv')
+    df1 = df[['question1']]
+    df1.columns = ['question']
+    df2 = df[['question2']]
+    df2.columns = ['question']
+    df_que2 = pandas.concat([df1, df2], ignore_index=True)
+    df_que2 = df_que2.drop_duplicates().fillna('')
+    df_que2['qid'] = ['TEST_%s' % i for i in numpy.arange(df_que2.shape[0])]
+
+    df_vec = pandas.DataFrame(numpy.array([model.docvecs[qid] for qid in df_que2['qid'].values]))
+    df_vec['qid'] = df_que2['qid'].values
+    df_vec['question'] = df_que2['question'].values
+
+    #df_vec.to_csv('doc_vec.csv', index=False)
+    with open('doc_vec_test.pkl', 'wb') as f:
         pickle.dump(df_vec, f, -1)
