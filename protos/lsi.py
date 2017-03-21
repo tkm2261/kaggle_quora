@@ -44,29 +44,25 @@ def _load(args):
 
 
 def train():
-    """
+
     with open('count_corpus.pkl', 'rb') as f:
         id_corpus = pickle.load(f)
 
-    lda = models.ldamulticore.LdaMulticore(corpus=id_corpus, num_topics=20)
+    lsi = models.lsimodel.LsiModel(corpus=id_corpus, num_topics=20)
 
-    lda.save('lda.model')
+    lsi.save('lsi50/lsi.model')
 
+    result = numpy.asarray(corpus2csc(lsi[id_corpus]).T.todense())
 
-
-    result = numpy.array(list(lda[id_corpus]))
-    """
     map_train, map_test, train_num = make_idmap()
-    with open('lda_sp.pkl', 'rb') as f:
-        result = numpy.asarray(pickle.load(f).T.todense())
 
     df = pandas.read_csv('../data/train.csv')[['question1', 'question2']].fillna('').values
     df_train = pandas.DataFrame(_train(result[:train_num], df, map_train))
-    df_train.to_csv('lda_train.csv', index=False)
+    df_train.to_csv('lsi50/lsi_train.csv', index=False)
 
     df = pandas.read_csv('../data/test.csv')[['question1', 'question2']].fillna('').values
     df_test = pandas.DataFrame(_train(result[train_num:], df, map_test))
-    df_test.to_csv('lda_test.csv', index=False)
+    df_test.to_csv('lsi50/lsi_test.csv', index=False)
 
 
 def cos_sim(v1, v2):

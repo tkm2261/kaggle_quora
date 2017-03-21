@@ -16,7 +16,7 @@ from sklearn.model_selection import GridSearchCV, ParameterGrid, StratifiedKFold
 import xgboost as xgb
 from lightgbm.sklearn import LGBMClassifier
 from sklearn.metrics import log_loss, roc_auc_score
-
+import gc
 from logging import getLogger
 logger = getLogger(__name__)
 
@@ -48,19 +48,29 @@ if __name__ == '__main__':
     x_train = np.c_[x_train, x]
     x = pd.read_csv('lda_train.csv').values
     x_train = np.c_[x_train, x]
+    x = pd.read_csv('lsi50/lsi_train.csv').values
+    x_train = np.c_[x_train, x]
+    x = pd.read_csv('w2v_train.csv').values
+    x_train = np.c_[x_train, x]
     """
     with open('train_data.pkl', 'rb') as f:
         x, y = pickle.load(f)
         x[np.isnan(x)] = 0
     x_train = np.c_[x_train, x]
     """
-    with open('train_idf_20.pkl', 'rb') as f:
+
+    """
+    with open('train_idf_100.pkl', 'rb') as f:
         x = np.asarray(pickle.load(f).todense())
     x_train = np.c_[x_train, x]
-    with open('train_cnt_20.pkl', 'rb') as f:
+    with open('train_cnt_100.pkl', 'rb') as f:
         x = np.asarray(pickle.load(f).todense())
     x_train = np.c_[x_train, x]
-    with open('train_tfidf_20.pkl', 'rb') as f:
+    with open('train_tfidf_100.pkl', 'rb') as f:
+        x = np.asarray(pickle.load(f).todense())
+    x_train = np.c_[x_train, x]
+    """
+    with open('train_tic_1000.pkl', 'rb') as f:
         x = np.asarray(pickle.load(f).todense())
     x_train = np.c_[x_train, x]
 
@@ -69,14 +79,22 @@ if __name__ == '__main__':
     x_test = np.c_[x_test, x]
     x = pd.read_csv('lda_test.csv').values
     x_test = np.c_[x_test, x]
-
-    with open('test_idf_20.pkl', 'rb') as f:
+    x = pd.read_csv('lsi50/lsi_test.csv').values
+    x_test = np.c_[x_test, x]
+    x = pd.read_csv('w2v_test.csv').values
+    x_test = np.c_[x_test, x]
+    """
+    with open('test_idf_100.pkl', 'rb') as f:
         x = np.asarray(pickle.load(f).todense())
     x_test = np.c_[x_test, x]
-    with open('test_cnt_20.pkl', 'rb') as f:
+    with open('test_cnt_100.pkl', 'rb') as f:
         x = np.asarray(pickle.load(f).todense())
     x_test = np.c_[x_test, x]
-    with open('test_tfidf_20.pkl', 'rb') as f:
+    with open('test_tfidf_100.pkl', 'rb') as f:
+        x = np.asarray(pickle.load(f).todense())
+    x_test = np.c_[x_test, x]
+    """
+    with open('test_tic_1000.pkl', 'rb') as f:
         x = np.asarray(pickle.load(f).todense())
     x_test = np.c_[x_test, x]
 
@@ -91,6 +109,9 @@ if __name__ == '__main__':
     x_test = x_test.values
     """
     y_train = df_train['is_duplicate'].values
+    del x, df_train, df_test
+    gc.collect()
+
     logger.info('x_shape: {}'.format(x_train.shape))
     pos_rate = 0.165
     pos_num = y_train.sum()
@@ -108,7 +129,7 @@ if __name__ == '__main__':
     #x_train, x_valid, y_train, y_valid = train_test_split(x_train, y_train, test_size=0.2, random_state=4242)
     all_params = {'max_depth': [10],
                   'learning_rate': [0.06],  # [0.06, 0.1, 0.2],
-                  'n_estimators': [10000],
+                  'n_estimators': [2030],
                   'min_child_weight': [3],
                   'colsample_bytree': [0.7],
                   'boosting_type': ['gbdt'],
@@ -128,6 +149,7 @@ if __name__ == '__main__':
     min_params = None
     cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=871)
     use_score = 0
+
     for params in ParameterGrid(all_params):
         list_score = []
         list_score2 = []
@@ -184,9 +206,17 @@ if __name__ == '__main__':
         logger.info('best score2: {} {}'.format(min_score2[use_score], min_score2))
         logger.info('best_param: {}'.format(min_params))
 
+    gc.collect()
+    """
+    for params in ParameterGrid(all_params):
+        min_params = params
+    """
     clf = LGBMClassifier(**min_params)
     clf.fit(x_train, y_train, sample_weight=sample_weight)
+    del x_train
+    gc.collect()
 
+    logger.info('train end')
     p_test = clf.predict_proba(x_test)[:, 1]
     sub = pd.DataFrame()
     sub['test_id'] = df_test['test_id']

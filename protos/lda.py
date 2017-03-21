@@ -44,29 +44,27 @@ def _load(args):
 
 
 def train():
-    """
+
     with open('count_corpus.pkl', 'rb') as f:
         id_corpus = pickle.load(f)
 
-    lda = models.ldamulticore.LdaMulticore(corpus=id_corpus, num_topics=20)
+    #lda = models.ldamulticore.LdaMulticore(corpus=id_corpus, num_topics=50)
 
-    lda.save('lda.model')
-
-
-
-    result = numpy.array(list(lda[id_corpus]))
-    """
+    # lda.save('lda50/lda.model')
+    lda = models.ldamulticore.LdaMulticore.load('lda50/lda.model')
+    result = numpy.asarray(corpus2csc(lda[id_corpus]).T.todense())
     map_train, map_test, train_num = make_idmap()
+    """
     with open('lda_sp.pkl', 'rb') as f:
         result = numpy.asarray(pickle.load(f).T.todense())
-
+    """
     df = pandas.read_csv('../data/train.csv')[['question1', 'question2']].fillna('').values
     df_train = pandas.DataFrame(_train(result[:train_num], df, map_train))
-    df_train.to_csv('lda_train.csv', index=False)
+    df_train.to_csv('lda50/lda_train.csv', index=False)
 
     df = pandas.read_csv('../data/test.csv')[['question1', 'question2']].fillna('').values
     df_test = pandas.DataFrame(_train(result[train_num:], df, map_test))
-    df_test.to_csv('lda_test.csv', index=False)
+    df_test.to_csv('lda50/lda_test.csv', index=False)
 
 
 def cos_sim(v1, v2):

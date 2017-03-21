@@ -16,9 +16,20 @@ from sklearn.model_selection import GridSearchCV, ParameterGrid, StratifiedKFold
 import xgboost as xgb
 from lightgbm.sklearn import LGBMClassifier
 from sklearn.metrics import log_loss, roc_auc_score
-
+from scipy.sparse import hstack
 from logging import getLogger
 logger = getLogger(__name__)
+
+
+def feat(idf, count, tfidf):
+    from features_idf import FEATURE as idf_feat
+    from features_tfidf import FEATURE as tfidf_feat
+    from features_cnt import FEATURE as cnt_feat
+
+    idf = idf[:, idf_feat]
+    tfidf = tfidf[:, tfidf_feat]
+    count = count[:, cnt_feat]
+    return hstack([idf, count, tfidf], format='csr')
 
 if __name__ == '__main__':
     from logging import StreamHandler, DEBUG, Formatter, FileHandler
@@ -64,10 +75,10 @@ if __name__ == '__main__':
 
     with open('train_sparse.pkl', 'rb') as f:
         idf, count, tfidf = pickle.load(f)
-        x_train = tfidf
+        x_train = feat(idf, count, tfidf)
     with open('test_sparse.pkl', 'rb') as f:
         idf, count, tfidf = pickle.load(f)
-        x_test = tfidf
+        x_test = feat(idf, count, tfidf)
 
     """
     x_train = x_train.values
@@ -98,8 +109,8 @@ if __name__ == '__main__':
                   'subsample': [0.9],
                   'min_child_samples': [10],
                   #'num_leaves': [300],
-                  #'reg_alpha': [0.1, 0, 1],
-                  #'reg_lambda': [0.1, 0, 1],
+                  'reg_alpha': [0.1],
+                  'reg_lambda': [0.1],
                   #'is_unbalance': [True, False],
                   #'subsample_freq': [1, 3],
                   #'drop_rate': [0.1],
@@ -151,12 +162,12 @@ if __name__ == '__main__':
             imp = pd.DataFrame(clf.feature_importances_, columns=['imp'])
             imp_use = imp[imp['imp'] > 0].sort_values('imp', ascending=False)
             logger.info('imp use {}'.format(imp_use.shape))
-            with open('features_tfidf.py', 'w') as f:
+            with open('features_tic.py', 'w') as f:
                 f.write('FEATURE = [' + ','.join(map(str, imp_use.index.values)) + ']\n')
-            with open('train_tfidf_10.pkl', 'wb') as f:
-                pickle.dump(x_train[:, imp_use.index.values[:10]], f, -1)
-            with open('test_tfidf_10.pkl', 'wb') as f:
-                pickle.dump(x_test[:, imp_use.index.values[:10]], f, -1)
+            with open('train_tic_300.pkl', 'wb') as f:
+                pickle.dump(x_train[:, imp_use.index.values[:300]], f, -1)
+            with open('test_tic_300.pkl', 'wb') as f:
+                pickle.dump(x_test[:, imp_use.index.values[:300]], f, -1)
             break
         logger.info('trees: {}'.format(list_best_iter))
         params['n_estimators'] = np.mean(list_best_iter, dtype=int)
