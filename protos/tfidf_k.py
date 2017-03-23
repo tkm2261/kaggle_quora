@@ -20,6 +20,137 @@ import gc
 from logging import getLogger
 logger = getLogger(__name__)
 
+from features_tmp import FEATURE
+
+CHUNK_SIZE = 100000
+
+
+def train_data():
+    logger.info('start')
+    x = pd.read_csv('kernel_train.csv').values.astype(np.float32)
+    x_train = pd.read_csv('count_tfidf_train.csv').values.astype(np.float32)
+    x_train = np.c_[x_train, x]
+
+    logger.info('1')
+    x = pd.read_csv('count_tfidf_norm_train.csv').values.astype(np.float32)
+    x_train = np.c_[x_train, x]
+    logger.info('2')
+    with open('lda100/lda_train.pkl', 'rb') as f:
+        x = pickle.load(f)
+    x_train = np.c_[x_train, x]
+    logger.info('3')
+    with open('lsi50/lsi_train.pkl', 'rb') as f:
+        x = pickle.load(f)
+    x_train = np.c_[x_train, x]
+    logger.info('4')
+    with open('w2v100/w2v_train.pkl', 'rb') as f:
+        x = pickle.load(f)
+    x_train = np.c_[x_train, x]
+
+    logger.info('5')
+    with open('train_tic_300.pkl', 'rb') as f:
+        x = np.asarray(pickle.load(f).todense()).astype(np.float32)
+    x_train = np.c_[x_train, x]
+
+    logger.info('6')
+    with open('../fasttext/fast_train2.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x_train = np.c_[x_train, x]
+    with open('../fasttext/fast_train_decay2.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x_train = np.c_[x_train, x]
+
+    logger.info('7')
+
+    with open('../glove/glove_train2.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x_train = np.c_[x_train, x]
+
+    with open('../glove/glove_train_100_max2.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x_train = np.c_[x_train, x]
+    logger.info('8')
+
+    with open('../lexvec/lexvec_train_100_2.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x_train = np.c_[x_train, x]
+
+    with open('../lexvec/lexvec_train_100_max2.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x_train = np.c_[x_train, x]
+    logger.info('9')
+
+    with open('train_svd_300.pkl', 'rb') as f:
+        x = pickle.load(f)[:, :100].astype(np.float32)
+    x_train = np.c_[x_train, x]
+
+    logger.info('end %s' % x_train.dtype)
+    return x_train[:, FEATURE]
+
+
+def test_data():
+    logger.info('start')
+    x = pd.read_csv('kernel_test.csv').values.astype(np.float32)
+    x_test = pd.read_csv('count_tfidf_test.csv').values.astype(np.float32)
+    x_test = np.c_[x_test, x]
+
+    logger.info('1')
+    x = pd.read_csv('count_tfidf_norm_test.csv').values.astype(np.float32)
+    x_test = np.c_[x_test, x]
+    logger.info('2')
+    with open('lda100/lda_test.pkl', 'rb') as f:
+        x = pickle.load(f)
+    x_test = np.c_[x_test, x]
+    logger.info('3')
+    with open('lsi50/lsi_test.pkl', 'rb') as f:
+        x = pickle.load(f)
+    x_test = np.c_[x_test, x]
+    logger.info('4')
+    with open('w2v100/w2v_test.pkl', 'rb') as f:
+        x = pickle.load(f)
+    x_test = np.c_[x_test, x]
+
+    logger.info('5')
+    with open('test_tic_300.pkl', 'rb') as f:
+        x = np.asarray(pickle.load(f).todense()).astype(np.float32)
+    x_test = np.c_[x_test, x]
+
+    logger.info('6')
+    with open('../fasttext/fast_test2.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x_test = np.c_[x_test, x]
+    with open('../fasttext/fast_test_decay2.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x_test = np.c_[x_test, x]
+
+    logger.info('7')
+
+    with open('../glove/glove_test2.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x_test = np.c_[x_test, x]
+
+    with open('../glove/glove_test_100_max2.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x_test = np.c_[x_test, x]
+    logger.info('8')
+
+    with open('../lexvec/lexvec_test_100_2.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x_test = np.c_[x_test, x]
+
+    with open('../lexvec/lexvec_test_100_max2.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x_test = np.c_[x_test, x]
+    logger.info('9')
+
+    with open('test_svd_300.pkl', 'rb') as f:
+        x = pickle.load(f)[:, :100].astype(np.float32)
+    x_test = np.c_[x_test, x]
+
+    logger.info('end %s' % x_test.dtype)
+    return x_test[:, FEATURE]
+
+
 if __name__ == '__main__':
     from logging import StreamHandler, DEBUG, Formatter, FileHandler
 
@@ -37,79 +168,16 @@ if __name__ == '__main__':
     logger.addHandler(handler)
 
     logger.info('load start')
-    df_train = pd.read_csv('../data/train.csv')
-    df_test = pd.read_csv('../data/test.csv')
-    """
-    x_train.to_csv('kernel_train.csv', index=False)
-    x_test.to_csv('kernel_test.csv', index=False)
-    """
-    x = pd.read_csv('kernel_train.csv').values
-    x_train = pd.read_csv('count_tfidf_train.csv').values
-    x_train = np.c_[x_train, x]
-    x = pd.read_csv('lda_train.csv').values
-    x_train = np.c_[x_train, x]
-    x = pd.read_csv('lsi50/lsi_train.csv').values
-    x_train = np.c_[x_train, x]
-    x = pd.read_csv('w2v_train.csv').values
-    x_train = np.c_[x_train, x]
-    """
-    with open('train_data.pkl', 'rb') as f:
-        x, y = pickle.load(f)
-        x[np.isnan(x)] = 0
-    x_train = np.c_[x_train, x]
-    """
+    df_train = pd.read_csv('../data/train.csv', usecols=['is_duplicate'])
+    df_test = pd.read_csv('../data/test.csv', usecols=['test_id'])
 
-    """
-    with open('train_idf_100.pkl', 'rb') as f:
-        x = np.asarray(pickle.load(f).todense())
-    x_train = np.c_[x_train, x]
-    with open('train_cnt_100.pkl', 'rb') as f:
-        x = np.asarray(pickle.load(f).todense())
-    x_train = np.c_[x_train, x]
-    with open('train_tfidf_100.pkl', 'rb') as f:
-        x = np.asarray(pickle.load(f).todense())
-    x_train = np.c_[x_train, x]
-    """
-    with open('train_tic_1000.pkl', 'rb') as f:
-        x = np.asarray(pickle.load(f).todense())
-    x_train = np.c_[x_train, x]
+    ################
+    x_train = train_data()
 
-    x_test = pd.read_csv('count_tfidf_test.csv').values
-    x = pd.read_csv('kernel_test.csv').values
-    x_test = np.c_[x_test, x]
-    x = pd.read_csv('lda_test.csv').values
-    x_test = np.c_[x_test, x]
-    x = pd.read_csv('lsi50/lsi_test.csv').values
-    x_test = np.c_[x_test, x]
-    x = pd.read_csv('w2v_test.csv').values
-    x_test = np.c_[x_test, x]
-    """
-    with open('test_idf_100.pkl', 'rb') as f:
-        x = np.asarray(pickle.load(f).todense())
-    x_test = np.c_[x_test, x]
-    with open('test_cnt_100.pkl', 'rb') as f:
-        x = np.asarray(pickle.load(f).todense())
-    x_test = np.c_[x_test, x]
-    with open('test_tfidf_100.pkl', 'rb') as f:
-        x = np.asarray(pickle.load(f).todense())
-    x_test = np.c_[x_test, x]
-    """
-    with open('test_tic_1000.pkl', 'rb') as f:
-        x = np.asarray(pickle.load(f).todense())
-    x_test = np.c_[x_test, x]
+    #####################
 
-    """
-    with open('test_data.pkl', 'rb') as f:
-        x = pickle.load(f)
-        x[np.isnan(x)] = 0
-    x_test = np.c_[x_test, x]
-    """
-    """
-    x_train = x_train.values
-    x_test = x_test.values
-    """
     y_train = df_train['is_duplicate'].values
-    del x, df_train, df_test
+    del df_train
     gc.collect()
 
     logger.info('x_shape: {}'.format(x_train.shape))
@@ -126,19 +194,21 @@ if __name__ == '__main__':
     logger.info('sampling start')
 
     from sklearn.cross_validation import train_test_split
+    #{'colsample_bytree': 0.7, 'max_bin': 255, 'seed': 2261, 'n_estimators': 8488, 'min_child_samples': 10, 'learning_rate': 0.01, 'max_depth': 10, 'boosting_type': 'gbdt', 'reg_alpha': 1, 'reg_lambda': 1, 'min_child_weight': 3, 'num_leaves': 200, 'min_split_gain': 0, 'subsample': 0.9}
     #x_train, x_valid, y_train, y_valid = train_test_split(x_train, y_train, test_size=0.2, random_state=4242)
     all_params = {'max_depth': [10],
-                  'learning_rate': [0.06],  # [0.06, 0.1, 0.2],
-                  'n_estimators': [2030],
+                  'learning_rate': [0.01],  # [0.06, 0.1, 0.2],
+                  'n_estimators': [10000],
                   'min_child_weight': [3],
                   'colsample_bytree': [0.7],
                   'boosting_type': ['gbdt'],
-                  'num_leaves': [150],
+                  'num_leaves': [200],
                   'subsample': [0.9],
                   'min_child_samples': [10],
-                  #'num_leaves': [300],
-                  #'reg_alpha': [0.1, 0, 1],
-                  #'reg_lambda': [0.1, 0, 1],
+                  'reg_alpha': [1],
+                  'reg_lambda': [1],
+                  #'max_bin': [350],
+                  'min_split_gain': [0],
                   #'is_unbalance': [True, False],
                   #'subsample_freq': [1, 3],
                   #'drop_rate': [0.1],
@@ -174,7 +244,7 @@ if __name__ == '__main__':
                     eval_set=[(val_x, val_y)],
                     verbose=True,
                     # eval_metric='logloss',
-                    early_stopping_rounds=300
+                    early_stopping_rounds=100
                     )
             pred = clf.predict_proba(val_x)[:, 1]
             with open('tfidf_val.pkl', 'wb') as f:
@@ -207,17 +277,34 @@ if __name__ == '__main__':
         logger.info('best_param: {}'.format(min_params))
 
     gc.collect()
-    """
-    for params in ParameterGrid(all_params):
-        min_params = params
-    """
+
+    # for params in ParameterGrid(all_params):
+    #    min_params = params
+
     clf = LGBMClassifier(**min_params)
     clf.fit(x_train, y_train, sample_weight=sample_weight)
+    with open('model.pkl', 'wb') as f:
+        pickle.dump(clf, f, -1)
     del x_train
     gc.collect()
 
+    with open('model.pkl', 'rb') as f:
+        clf = pickle.load(f)
+    imp = pd.DataFrame(clf.feature_importances_, columns=['imp'])
+    imp_use = imp[imp['imp'] > 0].sort_values('imp', ascending=False)
+    logger.info('imp use {}'.format(imp_use.shape))
+    with open('features_train.py', 'w') as f:
+        f.write('FEATURE = [' + ','.join(map(str, imp_use.index.values)) + ']\n')
+
+    x_test = test_data()
     logger.info('train end')
-    p_test = clf.predict_proba(x_test)[:, 1]
+    preds = []
+    for i in range(int(df_test.shape[0] / CHUNK_SIZE) + 1):
+        d = x_test[i * CHUNK_SIZE: (i + 1) * CHUNK_SIZE]
+        p_test = clf.predict_proba(d)
+        preds.append(p_test)
+    p_test = np.concatenate(preds)[:, 1]
+
     sub = pd.DataFrame()
     sub['test_id'] = df_test['test_id']
     sub['is_duplicate'] = p_test

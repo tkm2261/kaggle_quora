@@ -48,29 +48,25 @@ def train():
     with open('count_corpus.pkl', 'rb') as f:
         id_corpus = pickle.load(f)
 
-    lda = models.ldamulticore.LdaMulticore(corpus=id_corpus, num_topics=50)
+    lsi = models.lsimodel.LsiModel(corpus=id_corpus, num_topics=20)
 
-    lda.save('lda50/lda.model')
-    lda = models.ldamulticore.LdaMulticore.load('lda50/lda.model')
-    result = numpy.asarray(corpus2csc(lda[id_corpus]).T.todense())
+    lsi.save('lsi50/lsi.model')
+
+    result = numpy.asarray(corpus2csc(lsi[id_corpus]).T.todense())
 
     map_train, map_test, train_num = make_idmap()
 
     df = pandas.read_csv('../data/train.csv')[['question1', 'question2']].fillna('').values
     df_train = pandas.DataFrame(_train(result[:train_num], df, map_train))
-    df_train.to_csv('lda100/lda_train.csv', index=False)
+    df_train.to_csv('lsi50/lsi_train.csv', index=False)
 
     df = pandas.read_csv('../data/test.csv')[['question1', 'question2']].fillna('').values
     df_test = pandas.DataFrame(_train(result[train_num:], df, map_test))
-    df_test.to_csv('lda100/lda_test.csv', index=False)
+    df_test.to_csv('lsi50/lsi_test.csv', index=False)
 
 
 def cos_sim(v1, v2):
     return (v1 * v2).sum(axis=1) / (numpy.sqrt((v1 ** 2).sum(axis=1)) * numpy.sqrt((v2 ** 2).sum(axis=1)))
-
-
-def dist(v1, v2):
-    return numpy.sqrt(((v1 - v2) ** 2).sum(axis=1))
 
 
 def _train(count_mat, df, map_train):
@@ -84,9 +80,8 @@ def _train(count_mat, df, map_train):
     count_vec1 = count_mat[idxs1]
     count_vec2 = count_mat[idxs2]
     mat3 = cos_sim(count_vec1, count_vec2)
-    mat4 = dist(count_vec1, count_vec2)
 
-    return numpy.c_[count_vec1, count_vec2, mat3, mat4]
+    return numpy.c_[count_vec1, count_vec2, mat3]
 
 
 def make_idmap():
@@ -124,7 +119,7 @@ if __name__ == '__main__':
     from logging import StreamHandler, DEBUG, Formatter, FileHandler
 
     log_fmt = Formatter('%(asctime)s %(name)s %(lineno)d [%(levelname)s][%(funcName)s] %(message)s ')
-    handler = FileHandler('lda.py.log', 'w')
+    handler = FileHandler('doc2vec.py.log', 'w')
     handler.setLevel(DEBUG)
     handler.setFormatter(log_fmt)
     logger.setLevel(DEBUG)

@@ -12,7 +12,7 @@ logger = getLogger(__name__)
 
 wnl = WordNetLemmatizer()
 
-SIZE = 50
+SIZE = 100
 
 
 def train():

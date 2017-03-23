@@ -12,7 +12,7 @@ logger = getLogger(__name__)
 
 wnl = WordNetLemmatizer()
 
-SIZE = 50
+SIZE = 100
 
 
 def train():
@@ -178,8 +178,8 @@ if __name__ == '__main__':
     logger.addHandler(handler)
 
     # load_data()
-    # train()
-    # exit()
+    train()
+    exit()
 
     make_data()
     map_train, map_test, train_num = make_idmap()

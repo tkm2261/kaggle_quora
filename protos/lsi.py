@@ -47,11 +47,11 @@ def train():
 
     with open('count_corpus.pkl', 'rb') as f:
         id_corpus = pickle.load(f)
-
+    """
     lsi = models.lsimodel.LsiModel(corpus=id_corpus, num_topics=20)
-
     lsi.save('lsi50/lsi.model')
-
+    """
+    lsi = models.lsimodel.LsiModel.load('lsi50/lsi.model')
     result = numpy.asarray(corpus2csc(lsi[id_corpus]).T.todense())
 
     map_train, map_test, train_num = make_idmap()
@@ -63,6 +63,10 @@ def train():
     df = pandas.read_csv('../data/test.csv')[['question1', 'question2']].fillna('').values
     df_test = pandas.DataFrame(_train(result[train_num:], df, map_test))
     df_test.to_csv('lsi50/lsi_test.csv', index=False)
+
+
+def dist(v1, v2):
+    return numpy.sqrt(((v1 - v2) ** 2).sum(axis=1))
 
 
 def cos_sim(v1, v2):
@@ -80,8 +84,9 @@ def _train(count_mat, df, map_train):
     count_vec1 = count_mat[idxs1]
     count_vec2 = count_mat[idxs2]
     mat3 = cos_sim(count_vec1, count_vec2)
+    mat4 = dist(count_vec1, count_vec2)
 
-    return numpy.c_[count_vec1, count_vec2, mat3]
+    return numpy.c_[count_vec1, count_vec2, mat3, mat4]
 
 
 def make_idmap():
