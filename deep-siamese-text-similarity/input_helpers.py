@@ -104,7 +104,7 @@ class InputHelper(object):
         for train_idx, test_idx in cv.split(x1, y):
             break
         x1_train, x1_dev = x1[train_idx], x1[test_idx]
-        x2_train, x2_dev = x2[train_idx], x2[test_idx:]
+        x2_train, x2_dev = x2[train_idx], x2[test_idx]
         y_train, y_dev = y[train_idx], y[test_idx]
         sample_weight = (sample_weight[train_idx], sample_weight[test_idx])
 
