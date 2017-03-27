@@ -34,24 +34,39 @@ def train_data():
     logger.info('1')
     x = pd.read_csv('count_tfidf_norm_train.csv').values.astype(np.float32)
     x_train = np.c_[x_train, x]
+
+    with open('train_svo.pkl', 'rb') as f:
+        x = pickle.load(f)
+    x_train = np.c_[x_train, x]
+
+    with open('train_5w1h.pkl', 'rb') as f:
+        x = pickle.load(f)
+    x_train = np.c_[x_train, x]
+    with open('train_rest_sim.pkl', 'rb') as f:
+        x = pickle.load(f)
+    x_train = np.c_[x_train, x]
+
+    """
     logger.info('2')
     with open('lda100/lda_train.pkl', 'rb') as f:
         x = pickle.load(f)
     x_train = np.c_[x_train, x]
+    """
     logger.info('3')
     with open('lsi50/lsi_train.pkl', 'rb') as f:
         x = pickle.load(f)
     x_train = np.c_[x_train, x]
     logger.info('4')
+    """
     with open('w2v100/w2v_train.pkl', 'rb') as f:
         x = pickle.load(f)
     x_train = np.c_[x_train, x]
-
+    """
     logger.info('5')
-    with open('train_tic_300.pkl', 'rb') as f:
+    with open('train_tic_val_1000.pkl', 'rb') as f:
         x = np.asarray(pickle.load(f).todense()).astype(np.float32)
     x_train = np.c_[x_train, x]
-
+    '''
     logger.info('6')
     with open('../fasttext/fast_train2.pkl', 'rb') as f:
         x = pickle.load(f).astype(np.float32)
@@ -59,9 +74,8 @@ def train_data():
     with open('../fasttext/fast_train_decay2.pkl', 'rb') as f:
         x = pickle.load(f).astype(np.float32)
     x_train = np.c_[x_train, x]
-
     logger.info('7')
-
+    '''
     with open('../glove/glove_train2.pkl', 'rb') as f:
         x = pickle.load(f).astype(np.float32)
     x_train = np.c_[x_train, x]
@@ -71,84 +85,154 @@ def train_data():
     x_train = np.c_[x_train, x]
     logger.info('8')
 
-    with open('../lexvec/lexvec_train_100_2.pkl', 'rb') as f:
+    with open('../lexvec/lexvec_train_100_w12_2.pkl', 'rb') as f:
         x = pickle.load(f).astype(np.float32)
     x_train = np.c_[x_train, x]
 
-    with open('../lexvec/lexvec_train_100_max2.pkl', 'rb') as f:
+    with open('../lexvec/lexvec_train_100_w12_max2.pkl', 'rb') as f:
         x = pickle.load(f).astype(np.float32)
     x_train = np.c_[x_train, x]
     logger.info('9')
+
+    with open('../glove/glove_train_pre2.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x_train = np.c_[x_train, x]
+    with open('../glove/glove_train_pre_max2.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x_train = np.c_[x_train, x]
 
     with open('train_svd_300.pkl', 'rb') as f:
         x = pickle.load(f)[:, :100].astype(np.float32)
     x_train = np.c_[x_train, x]
 
     logger.info('end %s' % x_train.dtype)
-    return x_train[:, FEATURE]
+    return x_train
+
+import dask.array as da
 
 
 def test_data():
     logger.info('start')
     x = pd.read_csv('kernel_test.csv').values.astype(np.float32)
     x_test = pd.read_csv('count_tfidf_test.csv').values.astype(np.float32)
-    x_test = np.c_[x_test, x]
+    x_test = da.from_array(x_test, chunks=CHUNK_SIZE)
+    x = da.from_array(x, chunks=CHUNK_SIZE)
+    x_test = da.concatenate([x_test, x], axis=1)
 
     logger.info('1')
     x = pd.read_csv('count_tfidf_norm_test.csv').values.astype(np.float32)
-    x_test = np.c_[x_test, x]
+    x = da.from_array(x, chunks=CHUNK_SIZE)
+    x_test = da.concatenate([x_test, x], axis=1)
+
+    with open('test_svo.pkl', 'rb') as f:
+        x = pickle.load(f)
+        x = da.from_array(x, chunks=CHUNK_SIZE)
+    x_test = da.concatenate([x_test, x], axis=1)
+
+    with open('test_5w1h.pkl', 'rb') as f:
+        x = pickle.load(f)
+        x = da.from_array(x, chunks=CHUNK_SIZE)
+    x_test = da.concatenate([x_test, x], axis=1)
+
+    with open('test_rest_sim.pkl', 'rb') as f:
+        x = pickle.load(f)
+        x = da.from_array(x, chunks=CHUNK_SIZE)
+    x_test = da.concatenate([x_test, x], axis=1)
+
+    """
     logger.info('2')
     with open('lda100/lda_test.pkl', 'rb') as f:
         x = pickle.load(f)
-    x_test = np.c_[x_test, x]
+        x = da.from_array(x, chunks=CHUNK_SIZE)
+    x_test = da.concatenate([x_test, x], axis=1)
+    """
     logger.info('3')
     with open('lsi50/lsi_test.pkl', 'rb') as f:
         x = pickle.load(f)
-    x_test = np.c_[x_test, x]
+        x = da.from_array(x, chunks=CHUNK_SIZE)
+    x_test = da.concatenate([x_test, x], axis=1)
+
+    """
     logger.info('4')
     with open('w2v100/w2v_test.pkl', 'rb') as f:
         x = pickle.load(f)
-    x_test = np.c_[x_test, x]
+        x = da.from_array(x, chunks=CHUNK_SIZE)
+    x_test = da.concatenate([x_test, x], axis=1)
+    """
 
     logger.info('5')
-    with open('test_tic_300.pkl', 'rb') as f:
+    with open('test_tic_val_1000.pkl', 'rb') as f:
         x = np.asarray(pickle.load(f).todense()).astype(np.float32)
-    x_test = np.c_[x_test, x]
+        x = da.from_array(x, chunks=CHUNK_SIZE)
+    x_test = da.concatenate([x_test, x], axis=1)
 
     logger.info('6')
     with open('../fasttext/fast_test2.pkl', 'rb') as f:
         x = pickle.load(f).astype(np.float32)
-    x_test = np.c_[x_test, x]
+        x = da.from_array(x, chunks=CHUNK_SIZE)
+    x_test = da.concatenate([x_test, x], axis=1)
+
     with open('../fasttext/fast_test_decay2.pkl', 'rb') as f:
         x = pickle.load(f).astype(np.float32)
-    x_test = np.c_[x_test, x]
+        x = da.from_array(x, chunks=CHUNK_SIZE)
+    x_test = da.concatenate([x_test, x], axis=1)
 
+    del x
+    gc.collect()
     logger.info('7')
 
     with open('../glove/glove_test2.pkl', 'rb') as f:
         x = pickle.load(f).astype(np.float32)
-    x_test = np.c_[x_test, x]
+        x = da.from_array(x, chunks=CHUNK_SIZE)
+    x_test = da.concatenate([x_test, x], axis=1)
+
+    del x
+    gc.collect()
 
     with open('../glove/glove_test_100_max2.pkl', 'rb') as f:
         x = pickle.load(f).astype(np.float32)
-    x_test = np.c_[x_test, x]
+        x = da.from_array(x, chunks=CHUNK_SIZE)
+    x_test = da.concatenate([x_test, x], axis=1)
+
+    del x
+    gc.collect()
     logger.info('8')
 
-    with open('../lexvec/lexvec_test_100_2.pkl', 'rb') as f:
+    with open('../lexvec/lexvec_test_100_w12_2.pkl', 'rb') as f:
         x = pickle.load(f).astype(np.float32)
-    x_test = np.c_[x_test, x]
+        x = da.from_array(x, chunks=CHUNK_SIZE)
+    x_test = da.concatenate([x_test, x], axis=1)
 
-    with open('../lexvec/lexvec_test_100_max2.pkl', 'rb') as f:
+    del x
+    gc.collect()
+    with open('../lexvec/lexvec_test_100_w12_max2.pkl', 'rb') as f:
         x = pickle.load(f).astype(np.float32)
-    x_test = np.c_[x_test, x]
+        x = da.from_array(x, chunks=CHUNK_SIZE)
+    x_test = da.concatenate([x_test, x], axis=1)
+
+    del x
+    gc.collect()
     logger.info('9')
+
+    with open('../glove/glove_test_pre2.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+        x = da.from_array(x, chunks=CHUNK_SIZE)
+    x_test = da.concatenate([x_test, x], axis=1)
+
+    with open('../glove/glove_test_pre_max2.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+        x = da.from_array(x, chunks=CHUNK_SIZE)
+    x_test = da.concatenate([x_test, x], axis=1)
 
     with open('test_svd_300.pkl', 'rb') as f:
         x = pickle.load(f)[:, :100].astype(np.float32)
-    x_test = np.c_[x_test, x]
+        x = da.from_array(x, chunks=CHUNK_SIZE)
+    x_test = da.concatenate([x_test, x], axis=1)
+    del x
 
+    gc.collect()
     logger.info('end %s' % x_test.dtype)
-    return x_test[:, FEATURE]
+    return x_test  # [:, FEATURE]
 
 
 if __name__ == '__main__':
@@ -173,7 +257,6 @@ if __name__ == '__main__':
 
     ################
     x_train = train_data()
-
     #####################
 
     y_train = df_train['is_duplicate'].values
@@ -195,9 +278,9 @@ if __name__ == '__main__':
 
     from sklearn.cross_validation import train_test_split
     #{'colsample_bytree': 0.7, 'max_bin': 255, 'seed': 2261, 'n_estimators': 8488, 'min_child_samples': 10, 'learning_rate': 0.01, 'max_depth': 10, 'boosting_type': 'gbdt', 'reg_alpha': 1, 'reg_lambda': 1, 'min_child_weight': 3, 'num_leaves': 200, 'min_split_gain': 0, 'subsample': 0.9}
-    #x_train, x_valid, y_train, y_valid = train_test_split(x_train, y_train, test_size=0.2, random_state=4242)
+    # x_train, x_valid, y_train, y_valid = train_test_split(x_train, y_train, test_size=0.2, random_state=4242)
     all_params = {'max_depth': [10],
-                  'learning_rate': [0.01],  # [0.06, 0.1, 0.2],
+                  'learning_rate': [0.06],  # [0.06, 0.1, 0.2],
                   'n_estimators': [10000],
                   'min_child_weight': [3],
                   'colsample_bytree': [0.7],
@@ -207,8 +290,8 @@ if __name__ == '__main__':
                   'min_child_samples': [10],
                   'reg_alpha': [1],
                   'reg_lambda': [1],
-                  #'max_bin': [350],
-                  'min_split_gain': [0],
+                  #'max_bin': [500],
+                  'min_split_gain': [0.1],
                   #'is_unbalance': [True, False],
                   #'subsample_freq': [1, 3],
                   #'drop_rate': [0.1],
@@ -233,9 +316,9 @@ if __name__ == '__main__':
             trn_w = sample_weight[train]
             val_w = sample_weight[test]
 
-            #reg = LogisticRegression(C=0.1, solver='sag', n_jobs=-1)
-            #pred_x = cross_val_predict(reg, trn_x, trn_y, cv=5, n_jobs=-1)
-            #trn_x = np.c_[trn_x, pred_x]
+            # reg = LogisticRegression(C=0.1, solver='sag', n_jobs=-1)
+            # pred_x = cross_val_predict(reg, trn_x, trn_y, cv=5, n_jobs=-1)
+            # trn_x = np.c_[trn_x, pred_x]
 
             clf = LGBMClassifier(**params)
             clf.fit(trn_x, trn_y,
@@ -300,7 +383,7 @@ if __name__ == '__main__':
     logger.info('train end')
     preds = []
     for i in range(int(df_test.shape[0] / CHUNK_SIZE) + 1):
-        d = x_test[i * CHUNK_SIZE: (i + 1) * CHUNK_SIZE]
+        d = x_test[i * CHUNK_SIZE: (i + 1) * CHUNK_SIZE].compute()
         p_test = clf.predict_proba(d)
         preds.append(p_test)
     p_test = np.concatenate(preds)[:, 1]

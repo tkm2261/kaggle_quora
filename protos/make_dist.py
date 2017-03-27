@@ -64,6 +64,33 @@ def calc(x):
 
 def train_data():
     logger.info('start')
+    logger.info('6')
+
+    with open('../glove/glove_train_pre.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x = calc(x)
+    with open('../glove/glove_train_pre2.pkl', 'wb') as f:
+        pickle.dump(x, f, -1)
+
+    with open('../glove/glove_train_pre_max.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x = calc(x)
+    with open('../glove/glove_train_pre_max2.pkl', 'wb') as f:
+        pickle.dump(x, f, -1)
+
+    """
+    with open('../lexvec/lexvec_train_100_w12.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x = calc(x)
+    with open('../lexvec/lexvec_train_100_w12_2.pkl', 'wb') as f:
+        pickle.dump(x, f, -1)
+        
+    with open('../lexvec/lexvec_train_100_w12_max.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x = calc(x)
+    with open('../lexvec/lexvec_train_100_w12_max2.pkl', 'wb') as f:
+        pickle.dump(x, f, -1)
+
 
     logger.info('2')
     x = pd.read_csv('lda100/lda_train.csv').values.astype(np.float32)
@@ -122,10 +149,36 @@ def train_data():
     x = calc(x)
     with open('../lexvec/lexvec_train_100_max2.pkl', 'wb') as f:
         pickle.dump(x, f, -1)
+    """
 
 
 def test_data():
     logger.info('start')
+
+    with open('../glove/glove_test_pre.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x = calc(x)
+    with open('../glove/glove_test_pre2.pkl', 'wb') as f:
+        pickle.dump(x, f, -1)
+
+    with open('../glove/glove_test_pre_max.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x = calc(x)
+    with open('../glove/glove_test_pre_max2.pkl', 'wb') as f:
+        pickle.dump(x, f, -1)
+
+    """        
+    with open('../lexvec/lexvec_test_100_w12.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x = calc(x)
+    with open('../lexvec/lexvec_test_100_w12_2.pkl', 'wb') as f:
+        pickle.dump(x, f, -1)
+    with open('../lexvec/lexvec_test_100_w12_max.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x = calc(x)
+    with open('../lexvec/lexvec_test_100_w12_max_2.pkl', 'wb') as f:
+        pickle.dump(x, f, -1)
+    
 
     logger.info('2')
     x = pd.read_csv('lda100/lda_test.csv').values.astype(np.float32)
@@ -184,6 +237,7 @@ def test_data():
     x = calc(x)
     with open('../lexvec/lexvec_test_100_max2.pkl', 'wb') as f:
         pickle.dump(x, f, -1)
+    """
 
 if __name__ == '__main__':
     from logging import StreamHandler, DEBUG, Formatter, FileHandler

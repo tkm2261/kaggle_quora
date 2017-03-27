@@ -21,7 +21,7 @@ from logging import getLogger
 logger = getLogger(__name__)
 
 from features_tmp import FEATURE
-from ifidf_k import train_data, test_data
+from tfidf_k import train_data, test_data
 
 if __name__ == '__main__':
     from logging import StreamHandler, DEBUG, Formatter, FileHandler
@@ -67,7 +67,7 @@ if __name__ == '__main__':
 
     all_params = {'max_depth': [5],
                   'n_estimators': [10000],
-                  'learning_rate': [0.06],
+                  'learning_rate': [0.02],
                   'scale_pos_weight': [1],
                   'min_child_weight': [0],
                   'subsample': [0.9],
@@ -174,5 +174,5 @@ if __name__ == '__main__':
     sub = pd.DataFrame()
     sub['test_id'] = df_test['test_id']
     sub['is_duplicate'] = p_test
-    sub.to_csv('submit.csv', index=False)
+    sub.to_csv('submit_xgb.csv', index=False)
     logger.info('learn start')
