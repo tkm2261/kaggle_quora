@@ -17,6 +17,8 @@ from random import random
 from sklearn.metrics import log_loss, roc_auc_score
 
 
+
+
 # Parameters
 # ==================================================
 
@@ -39,6 +41,23 @@ FLAGS = tf.flags.FLAGS
 FLAGS._parse_flags()
 from logging import getLogger
 logger = getLogger(__name__)
+
+
+from logging import StreamHandler, DEBUG, Formatter, FileHandler
+
+log_fmt = Formatter('%(asctime)s %(name)s %(lineno)d [%(levelname)s][%(funcName)s] %(message)s ')
+handler = FileHandler('train.py.log', 'w')
+handler.setLevel(DEBUG)
+handler.setFormatter(log_fmt)
+logger.setLevel(DEBUG)
+logger.addHandler(handler)
+
+handler = StreamHandler()
+handler.setLevel('INFO')
+handler.setFormatter(log_fmt)
+logger.setLevel('INFO')
+logger.addHandler(handler)
+
 
 
 logger.info("Parameters:")
@@ -85,11 +104,11 @@ with tf.Graph().as_default():
     grad_summaries = []
     for g, v in grads_and_vars:
         if g is not None:
-            grad_hist_summary = tf.histogram_summary("{}/grad/hist".format(v.name), g)
-            sparsity_summary = tf.scalar_summary("{}/grad/sparsity".format(v.name), tf.nn.zero_fraction(g))
+            grad_hist_summary = tf.summary.histogram("{}/grad/hist".format(v.name), g)
+            sparsity_summary = tf.summary.scalar("{}/grad/sparsity".format(v.name), tf.nn.zero_fraction(g))
             grad_summaries.append(grad_hist_summary)
             grad_summaries.append(sparsity_summary)
-    grad_summaries_merged = tf.merge_summary(grad_summaries)
+    grad_summaries_merged = tf.summary.merge(grad_summaries)
     logger.info("defined gradient summaries")
     # Output directory for models and summaries
     timestamp = str(int(time.time()))
@@ -104,7 +123,7 @@ with tf.Graph().as_default():
     saver = tf.train.Saver(tf.all_variables(), max_to_keep=100)
 
     # Write vocabulary
-    vocab_processor.save(os.path.join(checkpoint_dir, "vocab"))
+    #vocab_processor.save(os.path.join(checkpoint_dir, "vocab"))
 
     # Initialize all variables
     sess.run(tf.initialize_all_variables())
@@ -181,7 +200,7 @@ with tf.Graph().as_default():
     ptr = 0
     max_validation_acc = 0.0
     for nn in range(sum_no_of_batches * FLAGS.num_epochs):
-        batch = batches.next()
+        batch = batches.__next__()
         if len(batch) < 1:
             continue
         x1_batch, x2_batch, y_batch = zip(*batch)
