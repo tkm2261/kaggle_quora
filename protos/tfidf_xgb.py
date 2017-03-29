@@ -21,7 +21,7 @@ from logging import getLogger
 logger = getLogger(__name__)
 
 from features_tmp import FEATURE
-from tfidf_k import train_data, test_data
+from tfidf_k import train_data, test_data, CHUNK_SIZE
 
 if __name__ == '__main__':
     from logging import StreamHandler, DEBUG, Formatter, FileHandler
@@ -42,7 +42,7 @@ if __name__ == '__main__':
     logger.info('load start')
     df_train = pd.read_csv('../data/train.csv')
     df_test = pd.read_csv('../data/test.csv')
-
+    """
     ################
     x_train = train_data()
 
@@ -67,18 +67,16 @@ if __name__ == '__main__':
 
     all_params = {'max_depth': [5],
                   'n_estimators': [10000],
-                  'learning_rate': [0.02],
-                  'scale_pos_weight': [1],
                   'min_child_weight': [0],
                   'subsample': [0.9],
                   'colsample_bytree': [0.8],
                   'colsample_bylevel': [0.8],
-                  #'booster': ['dart'],
+                  'booster': ['dart'],
                   'eta': [0.06],
                   #'normalize_type': ['forest'],
                   #'sample_type': ['weighted'],
-                  #'rate_drop': [0.1],
-                  #'skip_drop': [0.5],
+                  'rate_drop': [0.1],
+                  'skip_drop': [0.5],
                   'silent': [False],
                   'eval_metric': ['logloss'],
                   'objective': ['binary:logistic']
@@ -153,14 +151,12 @@ if __name__ == '__main__':
                     d_train,
                     min_params['n_estimators'],
                     verbose_eval=1)
-
+  
     with open('model_xgb.pkl', 'wb') as f:
         pickle.dump(clf, f, -1)
     del x_train
     gc.collect()
-
-    with open('model_xgb.pkl', 'rb') as f:
-        clf = pickle.load(f)
+    """
     #imp = pd.DataFrame(clf.feature_importances_, columns=['imp'])
     #imp_use = imp[imp['imp'] > 0].sort_values('imp', ascending=False)
     #logger.info('imp use {}'.format(imp_use.shape))
@@ -168,9 +164,23 @@ if __name__ == '__main__':
     #    f.write('FEATURE = [' + ','.join(map(str, imp_use.index.values)) + ']\n')
 
     x_test = test_data()
-    d_test = xgb.DMatrix(x_test, weight=sample_weight)
+    #d_test = xgb.DMatrix(x_test)
     logger.info('train end')
-    p_test = clf.predict(d_test)
+    with open('model_xgb.pkl', 'rb') as f:
+        clf = pickle.load(f)
+    print(clf)
+
+    #p_test = clf.predict(d_test)
+
+    preds = []
+    for i in range(int(df_test.shape[0] / CHUNK_SIZE) + 1):
+        d = x_test[i * CHUNK_SIZE: (i + 1) * CHUNK_SIZE].compute()
+        d = xgb.DMatrix(d)
+
+        p_test = clf.predict(d)
+        preds.append(p_test)
+    p_test = np.concatenate(preds)  # [:, 1]
+
     sub = pd.DataFrame()
     sub['test_id'] = df_test['test_id']
     sub['is_duplicate'] = p_test

@@ -18,6 +18,9 @@ from collections import Counter
 # If a word appears only once, we ignore it completely (likely a typo)
 # Epsilon defines a smoothing constant, which makes the effect of extremely rare words smaller
 
+from nltk.corpus import stopwords
+stops = set(stopwords.words("english"))
+
 
 def get_weight(count, D, eps=1, min_count=2):
     if count < min_count:
@@ -27,7 +30,8 @@ def get_weight(count, D, eps=1, min_count=2):
 
 
 def aaa(row):
-    return [word.lower_ for word in parser(str(row).lower())]
+    # return str(row).lower().split()
+    return [word.lower_ for word in parser(str(row).lower()) if word not in stops]
 
 
 def make_idf():
@@ -51,8 +55,8 @@ def make_idf():
         ret += r
 
     counts = Counter(ret)
-    with open('svo_counter.pkl', 'wb') as f:
-        pickle.dump(counts, f, -1)
+    # with open('svo_counter.pkl', 'wb') as f:
+    #    pickle.dump(counts, f, -1)
     """
     with open('svo_counter.pkl', 'rb') as f:
         counts = pickle.load(f)
@@ -77,7 +81,7 @@ def feat(set1, set2):
 
     for word in sets:
         num_ent += 1  #
-        val_ent += weights.get(word, 0)
+        val_ent += weights.get(word, 10.)
     return num_ent, val_ent, rate_ent
 
 import Levenshtein
@@ -98,12 +102,12 @@ def load_data(row):
 
     num_ent, val_ent, rate_ent = feat(set_ent1, set_ent2)
 
-    list_last1 = [wnl.lemmatize(ele.lower_) for ele in q1 if ele.pos_ != 'PUNCT']
-    list_last2 = [wnl.lemmatize(ele.lower_) for ele in q2 if ele.pos_ != 'PUNCT']
+    list_last1 = [ele.lower_ for ele in q1 if ele.pos_ != 'PUNCT']
+    list_last2 = [ele.lower_ for ele in q2 if ele.pos_ != 'PUNCT']
     num_for = 0
     val_for = 0.
     for i in range(min(len(list_last1), len(list_last2))):
-        if list_last1[i] == list_last2[i] or match_rating_comparison(list_last1[i], list_last2[i]):
+        if list_last1[i] == list_last2[i]:  # or match_rating_comparison(list_last1[i], list_last2[i]):
             num_for += 1
             val_for += weights.get(list_last1[i], 0)
         else:
@@ -114,65 +118,64 @@ def load_data(row):
     num_rev = 0
     val_rev = 0.
     for i in range(min(len(list_last1), len(list_last2))):
-        if list_last1[i] == list_last2[i] or match_rating_comparison(list_last1[i], list_last2[i]):
+        if list_last1[i] == list_last2[i]:  # or match_rating_comparison(list_last1[i], list_last2[i]):
             num_rev += 1
             val_rev += weights.get(list_last1[i], 0)
         else:
             break
 
-    set_sub1 = set([wnl.lemmatize(ele.lower_) for ele in q1 if ele.dep_ == 'nsubj'])
-    set_sub2 = set([wnl.lemmatize(ele.lower_) for ele in q2 if ele.dep_ == 'nsubj'])
+    set_sub1 = set([ele.lower_ for ele in q1 if ele.dep_ == 'nsubj'])
+    set_sub2 = set([ele.lower_ for ele in q2 if ele.dep_ == 'nsubj'])
 
     num_sub, val_sub, rate_sub = feat(set_sub1, set_sub2)
 
-    set_root1 = set([wnl.lemmatize(ele.lower_) for ele in q1 if ele.dep_ == 'ROOT'])
-    set_root2 = set([wnl.lemmatize(ele.lower_) for ele in q2 if ele.dep_ == 'ROOT'])
+    set_root1 = set([ele.lower_ for ele in q1 if ele.dep_ == 'ROOT'])
+    set_root2 = set([ele.lower_ for ele in q2 if ele.dep_ == 'ROOT'])
 
     num_root, val_root, rate_root = feat(set_root1, set_root2)
 
-    set_advmod1 = set([wnl.lemmatize(ele.lower_) for ele in q1 if ele.dep_ == 'advmod'])
-    set_advmod2 = set([wnl.lemmatize(ele.lower_) for ele in q2 if ele.dep_ == 'advmod'])
+    set_advmod1 = set([ele.lower_ for ele in q1 if ele.dep_ == 'advmod'])
+    set_advmod2 = set([ele.lower_ for ele in q2 if ele.dep_ == 'advmod'])
 
     num_advmod, val_advmod, rate_advmod = feat(set_advmod1, set_advmod2)
 
-    set_advcl1 = set([wnl.lemmatize(ele.lower_) for ele in q1 if ele.dep_ == 'advcl'])
-    set_advcl2 = set([wnl.lemmatize(ele.lower_) for ele in q2 if ele.dep_ == 'advcl'])
+    set_advcl1 = set([ele.lower_ for ele in q1 if ele.dep_ == 'advcl'])
+    set_advcl2 = set([ele.lower_ for ele in q2 if ele.dep_ == 'advcl'])
 
     num_advcl, val_advcl, rate_advcl = feat(set_advcl1, set_advcl2)
 
-    set_aux1 = set([wnl.lemmatize(ele.lower_) for ele in q1 if ele.dep_ == 'aux'])
-    set_aux2 = set([wnl.lemmatize(ele.lower_) for ele in q2 if ele.dep_ == 'aux'])
+    set_aux1 = set([ele.lower_ for ele in q1 if ele.dep_ == 'aux'])
+    set_aux2 = set([ele.lower_ for ele in q2 if ele.dep_ == 'aux'])
 
     num_aux, val_aux, rate_aux = feat(set_aux1, set_aux2)
 
-    set_dobj1 = set([wnl.lemmatize(ele.lower_) for ele in q1 if ele.dep_ == 'dobj'])
-    set_dobj2 = set([wnl.lemmatize(ele.lower_) for ele in q2 if ele.dep_ == 'dobj'])
+    set_dobj1 = set([ele.lower_ for ele in q1 if ele.dep_ == 'dobj'])
+    set_dobj2 = set([ele.lower_ for ele in q2 if ele.dep_ == 'dobj'])
 
     num_dobj, val_dobj, rate_dobj = feat(set_dobj1, set_dobj2)
 
-    # set_poss1 = set([wnl.lemmatize(ele.lower_) for ele in q1 if ele.dep_ == 'poss'])
-    # set_poss2 = set([wnl.lemmatize(ele.lower_) for ele in q2 if ele.dep_ == 'poss'])
+    # set_poss1 = set([ele.lower_ for ele in q1 if ele.dep_ == 'poss'])
+    # set_poss2 = set([ele.lower_ for ele in q2 if ele.dep_ == 'poss'])
 
     # num_poss, val_poss, rate_poss = feat(set_poss1, set_poss2)
 
-    set_noun1 = set([wnl.lemmatize(ele.lower_) for ele in q1 if ele.pos_ == 'NOUN'])
-    set_noun2 = set([wnl.lemmatize(ele.lower_) for ele in q2 if ele.pos_ == 'NOUN'])
+    set_noun1 = set([ele.lower_ for ele in q1 if ele.pos_ == 'NOUN'])
+    set_noun2 = set([ele.lower_ for ele in q2 if ele.pos_ == 'NOUN'])
 
     num_noun, val_noun, rate_noun = feat(set_noun1, set_noun2)
 
-    set_verb1 = set([wnl.lemmatize(ele.lower_) for ele in q1 if ele.pos_ == 'VERB'])
-    set_verb2 = set([wnl.lemmatize(ele.lower_) for ele in q2 if ele.pos_ == 'VERB'])
+    set_verb1 = set([ele.lower_ for ele in q1 if ele.pos_ == 'VERB'])
+    set_verb2 = set([ele.lower_ for ele in q2 if ele.pos_ == 'VERB'])
 
     num_verb, val_verb, rate_verb = feat(set_verb1, set_verb2)
 
-    set_adv1 = set([wnl.lemmatize(ele.lower_) for ele in q1 if ele.pos_ == 'ADV'])
-    set_adv2 = set([wnl.lemmatize(ele.lower_) for ele in q2 if ele.pos_ == 'ADV'])
+    set_adv1 = set([ele.lower_ for ele in q1 if ele.pos_ == 'ADV'])
+    set_adv2 = set([ele.lower_ for ele in q2 if ele.pos_ == 'ADV'])
 
     num_adv, val_adv, rate_adv = feat(set_adv1, set_adv2)
 
-    # set_adj1 = set([wnl.lemmatize(ele.lower_) for ele in q1 if ele.pos_ == 'ADJ'])
-    # set_adj2 = set([wnl.lemmatize(ele.lower_) for ele in q2 if ele.pos_ == 'ADJ'])
-
+    # set_adj1 = set([ele.lower_ for ele in q1 if ele.pos_ == 'ADJ'])
+    # set_adj2 = set([ele.lower_ for ele in q2 if ele.pos_ == 'ADJ'])
     # num_adj, val_adj, rate_adj = feat(set_adj1, set_adj2)
 
     set_svo1 = set([(ele[0].lower(), ele[1].lower(), ele[2].lower()) for ele in findSVOs(q1)])
@@ -236,14 +239,15 @@ if __name__ == '__main__':
 
     ret = numpy.array(list(p.map(load_data, df)))
     print(ret[:100])
-    with open('train_svo.pkl', 'wb') as f:
+    with open('train_svo2.pkl', 'wb') as f:
         pickle.dump(ret, f, -1)
     logger.info('tran end')
+    exit()
     df = pandas.read_csv('../data/test.csv',
                          usecols=['question1', 'question2']).values
 
     ret = numpy.array(list(p.map(load_data, df)))
-    with open('test_svo.pkl', 'wb') as f:
+    with open('test_svo2.pkl', 'wb') as f:
         pickle.dump(ret, f, -1)
 
     p.close()

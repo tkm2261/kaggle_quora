@@ -64,8 +64,7 @@ if __name__ == '__main__':
         trn_w = sample_weight[train]
         val_w = sample_weight[test]
 
-        with open('tfidf_val.pkl', 'rb') as f:
+        with open('tfidf_val_0.pkl', 'rb') as f:
             pred, val_y, val_w = pickle.load(f)
-        import pdb
-        pdb.set_trace()
         pd.DataFrame(np.c_[pred.reshape(-1, 1), val_y.reshape(-1, 1), val_x]).to_csv('check_pred.csv')
+        break

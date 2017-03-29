@@ -19,8 +19,9 @@ def calc(sentences):
 
 def load_wordvec():
 
-    f = open('fasttext_vec.csv', 'r')
+    f = open('model.vec', 'r')
     map_result = {}
+    f.readline()
     for line in f:
         line = line.strip().split(' ')
         word = line[0]
@@ -34,12 +35,17 @@ map_wordvec = load_wordvec()
 def _calc(row):
     vec = []
     for i, word in enumerate(row):
+        word = word.lower()
+        if word == '?':
+            break
+
         try:
             vec.append(map_wordvec[word])
         except KeyError:
             continue
 
     if len(vec) > 0:
+        """        
         vec = numpy.array(vec)
         a = numpy.min(vec, axis=0)
         b = numpy.max(vec, axis=0)
@@ -47,7 +53,7 @@ def _calc(row):
         return vec  #
         """
         return numpy.mean(vec, axis=0)
-        """
+
     else:
         return numpy.zeros(SIZE)
 
@@ -159,7 +165,7 @@ if __name__ == '__main__':
     df_train = pandas.DataFrame(_train(x, df, map_train))
     #df_train.to_csv('fast_train.csv', index=False)
 
-    with open('fast_train_decay.pkl', 'wb') as f:
+    with open('fast_train_first.pkl', 'wb') as f:
         pickle.dump(df_train.values, f, -1)
 
     with open('fast_vec_test.pkl', 'rb') as f:
@@ -169,5 +175,5 @@ if __name__ == '__main__':
     df_test = pandas.DataFrame(_train(x, df, map_test))
     #df_test.to_csv('fast_test.csv', index=False)
 
-    with open('fast_test_decay.pkl', 'wb') as f:
+    with open('fast_test_first.pkl', 'wb') as f:
         pickle.dump(df_test.values, f, -1)

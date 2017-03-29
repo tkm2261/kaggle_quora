@@ -58,6 +58,12 @@ if __name__ == '__main__':
         idf, count, tfidf = pickle.load(f)
         x_test = feat(idf, count, tfidf)
 
+    with open('tfidf_all_pred.pkl', 'rb') as f:
+        pred = pickle.load(f).astype(np.float32)
+
+    x_train = hstack([pred.reshape((-1, 1)), x_train], format='csr')
+
+    """
     from features_tic2 import FEATURE
     feat = np.array(FEATURE[1:1001]) - 1
     with open('train_tic_val_1000.pkl', 'wb') as f:
@@ -65,7 +71,7 @@ if __name__ == '__main__':
     with open('test_tic_val_1000.pkl', 'wb') as f:
         pickle.dump(x_test[:, feat], f, -1)
     exit()
-
+    """
     """
     x_train = x_train.values
     x_test = x_test.values
@@ -95,8 +101,8 @@ if __name__ == '__main__':
                   'subsample': [0.9],
                   'min_child_samples': [10],
                   #'num_leaves': [300],
-                  'reg_alpha': [0.1],
-                  'reg_lambda': [0.1],
+                  'reg_alpha': [1],
+                  'reg_lambda': [1],
                   #'is_unbalance': [True, False],
                   #'subsample_freq': [1, 3],
                   #'drop_rate': [0.1],
@@ -112,17 +118,17 @@ if __name__ == '__main__':
         list_score2 = []
         list_best_iter = []
 
-        for test, train in cv.split(x_train, y_train):
+        for train, test in cv.split(x_train, y_train):
             trn_x = x_train[train]
             val_x = x_train[test]
             trn_y = y_train[train]
             val_y = y_train[test]
             trn_w = sample_weight[train]
             val_w = sample_weight[test]
-            with open('tfidf_val.pkl', 'rb') as f:
-                pred, _, _ = pickle.load(f)
+            # with open('tfidf_val.pkl', 'rb') as f:
+            #    pred, _, _ = pickle.load(f)
 
-            trn_x = hstack([pred.reshape((-1, 1)), trn_x], format='csr')
+            #trn_x = hstack([pred.reshape((-1, 1)), trn_x], format='csr')
             #reg = LogisticRegression(C=0.1, solver='sag', n_jobs=-1)
             #pred_x = cross_val_predict(reg, trn_x, trn_y, cv=5, n_jobs=-1)
             #trn_x = np.c_[trn_x, pred_x]
@@ -130,8 +136,8 @@ if __name__ == '__main__':
             clf = LGBMClassifier(**params)
             clf.fit(trn_x, trn_y,
                     sample_weight=trn_w,
-                    eval_sample_weight=[trn_w],
-                    eval_set=[(trn_x, trn_y)],
+                    eval_sample_weight=[val_w],
+                    eval_set=[(val_x, val_y)],
                     verbose=True,
                     # eval_metric='logloss',
                     early_stopping_rounds=300
@@ -139,12 +145,9 @@ if __name__ == '__main__':
             imp = pd.DataFrame(clf.feature_importances_, columns=['imp'])
             imp_use = imp[imp['imp'] > 0].sort_values('imp', ascending=False)
             logger.info('imp use {}'.format(imp_use.shape))
-            with open('features_tic2.py', 'w') as f:
+            with open('features_tic_0328.py', 'w') as f:
                 f.write('FEATURE = [' + ','.join(map(str, imp_use.index.values)) + ']\n')
 
-            pred = clf.predict_proba(val_x)[:, 1]
-            with open('sparse_val.pkl', 'wb') as f:
-                pickle.dump((pred, val_y, val_w), f, -1)
             _score = log_loss(val_y, pred, sample_weight=val_w)
             _score2 = - roc_auc_score(val_y, pred, sample_weight=val_w)
             # logger.debug('   _score: %s' % _score)
@@ -154,11 +157,7 @@ if __name__ == '__main__':
                 list_best_iter.append(clf.best_iteration)
             else:
                 list_best_iter.append(params['n_estimators'])
-            imp = pd.DataFrame(clf.feature_importances_, columns=['imp'])
-            imp_use = imp[imp['imp'] > 0].sort_values('imp', ascending=False)
-            logger.info('imp use {}'.format(imp_use.shape))
-            with open('features_tic.py', 'w') as f:
-                f.write('FEATURE = [' + ','.join(map(str, imp_use.index.values)) + ']\n')
+
             with open('train_tic_300.pkl', 'wb') as f:
                 pickle.dump(x_train[:, imp_use.index.values[:300]], f, -1)
             with open('test_tic_300.pkl', 'wb') as f:

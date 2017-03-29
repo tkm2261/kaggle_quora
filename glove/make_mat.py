@@ -19,7 +19,7 @@ def calc(sentences):
 
 def load_wordvec():
 
-    f = open('vectors.txt', 'r')
+    f = open('glove.twitter.27B.100d.txt', 'r')
     map_result = {}
     for line in f:
         line = line.strip().split(' ')
@@ -34,6 +34,7 @@ map_wordvec = load_wordvec()
 def _calc(row):
     vec = []
     for i, word in enumerate(row):
+        word = word.lower()
         try:
             vec.append(map_wordvec[word])
         except KeyError:
@@ -45,7 +46,9 @@ def _calc(row):
         b = numpy.max(vec, axis=0)
         vec = numpy.where(numpy.fabs(b) > numpy.fabs(a), b, a)
         return vec
-        # return numpy.mean(vec, axis=0)
+        """
+        return numpy.mean(vec, axis=0)
+        """
     else:
         return numpy.zeros(SIZE)
 
@@ -157,7 +160,7 @@ if __name__ == '__main__':
     df_train = pandas.DataFrame(_train(x, df, map_train))
     #df_train.to_csv('glove_train.csv', index=False)
 
-    with open('glove_train_100_max.pkl', 'wb') as f:
+    with open('glove_train_pre_max.pkl', 'wb') as f:
         pickle.dump(df_train.values, f, -1)
 
     with open('glove_vec_test.pkl', 'rb') as f:
@@ -167,5 +170,5 @@ if __name__ == '__main__':
     df_test = pandas.DataFrame(_train(x, df, map_test))
     #df_test.to_csv('glove_test.csv', index=False)
 
-    with open('glove_test_100_max.pkl', 'wb') as f:
+    with open('glove_test_pre_max.pkl', 'wb') as f:
         pickle.dump(df_test.values, f, -1)

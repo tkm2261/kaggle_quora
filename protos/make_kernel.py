@@ -30,17 +30,20 @@ df_train = pd.read_csv('../data/train.csv')
 df_test = pd.read_csv('../data/test.csv')
 train_qs = pd.Series(df_train['question1'].tolist() + df_train['question2'].tolist()).astype(str)
 D = df_train.shape[0]
+
+
 def get_weight(count, eps=10, min_count=2):
     if count < min_count:
         return 0
     else:
-        return np.log( D / (count + eps))
+        return np.log(D / (count + eps))
 
 from nltk.stem import WordNetLemmatizer
 
 from spacy.en import English
 parser = English()
 wnl = WordNetLemmatizer()
+
 
 def split_word(row):
     return str(row).lower().split()
@@ -51,24 +54,26 @@ counts = Counter(words)
 
 weights = {word: get_weight(count) for word, count in counts.items()}
 
-def tfidf_word_match_share(row):
-        q1words = {}
-        q2words = {}
-        for word in split_word(row[0]): 
-            if word not in stops:
-                q1words[word] = 1
-        for word in split_word(row[1]):
-            if word not in stops:
-                q2words[word] = 1
-        if len(q1words) == 0 or len(q2words) == 0:
-            # The computer-generated chaff includes a few questions that are nothing but stopwords
-            return 0
-        shared_weights = [weights.get(w, 0) for w in q1words.keys() if w in q2words] + \
-          [weights.get(w, 0) for w in q2words.keys() if w in q1words]
-        total_weights = [weights.get(w, 0) for w in q1words] + [weights.get(w, 0) for w in q2words]
 
-        R = np.sum(shared_weights) / np.sum(total_weights)
-        return R
+def tfidf_word_match_share(row):
+    q1words = {}
+    q2words = {}
+    for word in split_word(row[0]):
+        if word not in stops:
+            q1words[word] = 1
+    for word in split_word(row[1]):
+        if word not in stops:
+            q2words[word] = 1
+    if len(q1words) == 0 or len(q2words) == 0:
+        # The computer-generated chaff includes a few questions that are nothing but stopwords
+        return 0
+    shared_weights = [weights.get(w, 0) for w in q1words.keys() if w in q2words] + \
+        [weights.get(w, 0) for w in q2words.keys() if w in q1words]
+    total_weights = [weights.get(w, 0) for w in q1words] + [weights.get(w, 0) for w in q2words]
+
+    R = np.sum(shared_weights) / np.sum(total_weights)
+    return R
+
 
 def make_kernel(df_train, df_test):
 
@@ -89,11 +94,10 @@ def make_kernel(df_train, df_test):
         R = (len(shared_words_in_q1) + len(shared_words_in_q2)) / (len(q1words) + len(q2words))
         return R
 
-
     logger.info('count_share start')
     train_word_match = df_train.apply(word_match_share, axis=1, raw=True)
     logger.info('tfidf_share start')
-    p = Pool()	
+    p = Pool()
     tfidf_train_word_match = p.map(tfidf_word_match_share, df_train[['question1', 'question2']].values)
     p.close()
     p.join()
@@ -105,9 +109,8 @@ def make_kernel(df_train, df_test):
     x_test['word_match'] = df_test.apply(word_match_share, axis=1, raw=True)
     x_test['tfidf_word_match'] = df_test.apply(tfidf_word_match_share, axis=1, raw=True)
 
-    x_train.to_csv('kernel_train.csv', index=False)
-    x_test.to_csv('kernel_test.csv', index=False)
-    
+    x_train.to_csv('kernel_train2.csv', index=False)
+    x_test.to_csv('kernel_test2.csv', index=False)
 
 
 if __name__ == '__main__':

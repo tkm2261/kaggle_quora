@@ -17,35 +17,55 @@ from collections import Counter
 
 # If a word appears only once, we ignore it completely (likely a typo)
 # Epsilon defines a smoothing constant, which makes the effect of extremely rare words smaller
+from scipy.spatial.distance import euclidean, cosine
+
+
+def load_wordvec():
+
+    f = open('../glove/glove.840B.300d.txt', 'r')
+    map_result = {}
+    f.readline()
+    for line in f:
+        line = line.strip().split(' ')
+        word = line[0]
+        vec = numpy.array(list(map(float, line[1:])))
+        map_result[word.lower()] = vec
+    return map_result
+
+map_wordvec = load_wordvec()
+mean_vec = numpy.mean([val for val in map_wordvec.values() if val.shape[0] == 300], axis=0)
+logger.info('size: {}'.format(mean_vec.shape))
 
 
 def load_data(row):
     q1 = parser(str(row[0]))
     q2 = parser(str(row[1]))
 
-    set_last1 = set([wnl.lemmatize(ele.lower_) for ele in q1 if ele.pos_ != 'PUNCT'])
-    set_last2 = set([wnl.lemmatize(ele.lower_) for ele in q2 if ele.pos_ != 'PUNCT'])
-    both1 = set_last1 - (set_last1 & set_last2)
-    both2 = set_last2 - (set_last1 & set_last2)
+    set_last1 = set([ele.lower_ for ele in q1])  # if ele.pos_ != 'PUNCT'])
+    set_last2 = set([ele.lower_ for ele in q2])  # if ele.pos_ != 'PUNCT'])
+    both1 = set_last1  # - (set_last1 & set_last2)
+    both2 = set_last2  # - (set_last1 & set_last2)
 
     vec1 = None
     for word in both1:
         if vec1 is None:
-            vec1 = parser.vocab[word].repvec
+            vec1 = map_wordvec.get(word, mean_vec).copy()  # parser.vocab[word].repvec
         else:
-            vec1 += parser.vocab[word].repvec
+            vec1 += map_wordvec.get(word, mean_vec)  # parser.vocab[word].repvec
     vec2 = None
     for word in both2:
         if vec2 is None:
-            vec2 = parser.vocab[word].repvec
+            vec2 = map_wordvec.get(word, mean_vec).copy()  # parser.vocab[word].repvec
         else:
-            vec2 += parser.vocab[word].repvec
+            vec2 += map_wordvec.get(word, mean_vec)  # parser.vocab[word].repvec
 
     if vec1 is None or vec2 is None:
         score = 0
+        score2 = 0
     else:
-        score = numpy.sqrt(((vec1 - vec2) ** 2).sum())
-    return [len(both1), len(both2), score]
+        score = cosine(vec1, vec2)  # numpy.sqrt(((vec1 - vec2) ** 2).sum())
+        score2 = euclidean(vec1, vec2)
+    return [len(both1), len(both2), score, score2]
 
 
 if __name__ == '__main__':
@@ -69,14 +89,17 @@ if __name__ == '__main__':
 
     ret = numpy.array(list(p.map(load_data, df)))
     print(ret[:100])
-    with open('train_rest_sim.pkl', 'wb') as f:
+    with open('train_rest_sim2.pkl', 'wb') as f:
         pickle.dump(ret, f, -1)
     logger.info('tran end')
+
+    exit()
+
     df = pandas.read_csv('../data/test.csv',
                          usecols=['question1', 'question2']).values
 
     ret = numpy.array(list(p.map(load_data, df)))
-    with open('test_rest_sim.pkl', 'wb') as f:
+    with open('test_rest_sim2.pkl', 'wb') as f:
         pickle.dump(ret, f, -1)
 
     p.close()
