@@ -19,7 +19,7 @@ def calc(sentences):
 
 def load_wordvec():
 
-    f = open('glove.twitter.27B.100d.txt', 'r')
+    f = open('vectores_clean2.txt', 'r')
     map_result = {}
     for line in f:
         line = line.strip().split(' ')
@@ -41,6 +41,7 @@ def _calc(row):
             continue
 
     if len(vec) > 0:
+
         vec = numpy.array(vec)
         a = numpy.min(vec, axis=0)
         b = numpy.max(vec, axis=0)
@@ -59,7 +60,7 @@ def make_data():
         sentences = [row.words for row in sentences]
     mat = numpy.array(calc(sentences))
 
-    df = pandas.read_csv('../data/train.csv')
+    df = pandas.read_csv('../data/train_clean2.csv')
 
     df1 = df[['qid1', 'question1']]
     df1.columns = ['qid', 'question']
@@ -78,7 +79,7 @@ def make_data():
     with open('glove_vec.pkl', 'wb') as f:
         pickle.dump(df_vec, f, -1)
 
-    df = pandas.read_csv('../data/test.csv')
+    df = pandas.read_csv('../data/test_clean2.csv')
     df1 = df[['question1']]
     df1.columns = ['question']
     df2 = df[['question2']]
@@ -99,7 +100,7 @@ def make_data():
 def make_idmap():
     logger.info('start')
 
-    df = pandas.read_csv('../data/train.csv')
+    df = pandas.read_csv('../data/train_clean2.csv')
 
     df1 = df[['qid1', 'question1']]
     df1.columns = ['qid', 'question']
@@ -113,7 +114,7 @@ def make_idmap():
     map_train = dict(zip(df_que['question'], range(df_que.shape[0])))
 
     logger.info('df_que {}'.format(df_que.shape))
-    df = pandas.read_csv('../data/test.csv')
+    df = pandas.read_csv('../data/test_clean2.csv')
     df1 = df[['question1']]
     df1.columns = ['question']
     df2 = df[['question2']]
@@ -156,19 +157,19 @@ if __name__ == '__main__':
     with open('glove_vec.pkl', 'rb') as f:
         x = pickle.load(f)[list(range(SIZE))].values
 
-    df = pandas.read_csv('../data/train.csv')[['question1', 'question2']].fillna('').values
+    df = pandas.read_csv('../data/train_clean2.csv')[['question1', 'question2']].fillna('').values
     df_train = pandas.DataFrame(_train(x, df, map_train))
-    #df_train.to_csv('glove_train.csv', index=False)
+    #df_train.to_csv('glove_train_clean2.csv', index=False)
 
-    with open('glove_train_pre_max.pkl', 'wb') as f:
+    with open('glove_train_clean2_max.pkl', 'wb') as f:
         pickle.dump(df_train.values, f, -1)
 
     with open('glove_vec_test.pkl', 'rb') as f:
         x = pickle.load(f)[list(range(SIZE))].values
 
-    df = pandas.read_csv('../data/test.csv')[['question1', 'question2']].fillna('').values
+    df = pandas.read_csv('../data/test_clean2.csv')[['question1', 'question2']].fillna('').values
     df_test = pandas.DataFrame(_train(x, df, map_test))
-    #df_test.to_csv('glove_test.csv', index=False)
+    #df_test.to_csv('glove_test_clean2.csv', index=False)
 
-    with open('glove_test_pre_max.pkl', 'wb') as f:
+    with open('glove_test_clean2_max.pkl', 'wb') as f:
         pickle.dump(df_test.values, f, -1)

@@ -35,9 +35,9 @@ if __name__ == '__main__':
     logger.addHandler(handler)
 
     logger.info('load start')
-    df_train = pd.read_csv('../data/train.csv')
+    df_train = pd.read_csv('../data/train_clean2.csv')
     x_train = df_train[['is_duplicate', 'question1', 'question2']].values
-    y_train = df_train['is_duplicate'].values
+    y_train = df_train['is_duplicate']
     del df_train
     gc.collect()
 

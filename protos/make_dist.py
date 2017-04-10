@@ -65,6 +65,89 @@ def calc(x):
 def train_data():
     logger.info('start')
     logger.info('6')
+    logger.info('2')
+    """
+    with open('../lexvec/lexvec_train_clean.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x = calc(x)
+    with open('../lexvec/lexvec_train_clean.pkl', 'wb') as f:
+        pickle.dump(x, f, -1)
+
+    with open('../lexvec/lexvec_train_clean_max.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x = calc(x)
+    with open('../lexvec/lexvec_train_clean_max2.pkl', 'wb') as f:
+        pickle.dump(x, f, -1)
+
+    """
+    with open('../fasttext/fast_train_clean2_low.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x = calc(x)
+    with open('../fasttext/fast_train_clean2_low2.pkl', 'wb') as f:
+        pickle.dump(x, f, -1)
+
+    with open('../fasttext/fast_train_clean2_low_max.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x = calc(x)
+    with open('../fasttext/fast_train_clean2_low_max2.pkl', 'wb') as f:
+        pickle.dump(x, f, -1)
+
+    """
+    with open('../glove/glove_train_clean.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x = calc(x)
+    with open('../glove/glove_train_clean2.pkl', 'wb') as f:
+        pickle.dump(x, f, -1)
+
+    with open('../glove/glove_train_clean_max.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x = calc(x)
+    with open('../glove/glove_train_clean_max2.pkl', 'wb') as f:
+        pickle.dump(x, f, -1)
+
+
+    x = pd.read_csv('w2v_train.csv').values.astype(np.float32)
+    x = calc(x)
+    with open('w2v_train.pkl', 'wb') as f:
+        pickle.dump(x, f, -1)
+
+
+    with open('../fasttext/fast_train_clean.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x = calc(x)
+    with open('../fasttext/fast_train_clean2.pkl', 'wb') as f:
+        pickle.dump(x, f, -1)
+
+    with open('../fasttext/fast_train_clean_max.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x = calc(x)
+    with open('../fasttext/fast_train_clean_max2.pkl', 'wb') as f:
+        pickle.dump(x, f, -1)
+
+    with open('../fasttext/fast_train_clean_low.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x = calc(x)
+    with open('../fasttext/fast_train_clean_low2.pkl', 'wb') as f:
+        pickle.dump(x, f, -1)
+
+    with open('../fasttext/fast_train_clean_low_max.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x = calc(x)
+    with open('../fasttext/fast_train_clean_low_max2.pkl', 'wb') as f:
+        pickle.dump(x, f, -1)
+
+    with open('../glove/glove_train_clean.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x = calc(x)
+    with open('../glove/glove_train_clean2.pkl', 'wb') as f:
+        pickle.dump(x, f, -1)
+
+    with open('../glove/glove_train_clean_max.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x = calc(x)
+    with open('../glove/glove_train_clean_max2.pkl', 'wb') as f:
+        pickle.dump(x, f, -1)
+
 
     with open('../glove/glove_train_pre.pkl', 'rb') as f:
         x = pickle.load(f).astype(np.float32)
@@ -78,7 +161,7 @@ def train_data():
     with open('../glove/glove_train_pre_max2.pkl', 'wb') as f:
         pickle.dump(x, f, -1)
 
-    """
+
     with open('../lexvec/lexvec_train_100_w12.pkl', 'rb') as f:
         x = pickle.load(f).astype(np.float32)
     x = calc(x)
@@ -154,6 +237,90 @@ def train_data():
 
 def test_data():
     logger.info('start')
+    """
+    with open('../lexvec/lexvec_test_clean.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x = calc(x)
+    with open('../lexvec/lexvec_test_clean.pkl', 'wb') as f:
+        pickle.dump(x, f, -1)
+
+    with open('../lexvec/lexvec_test_clean_max.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x = calc(x)
+    with open('../lexvec/lexvec_test_clean_max2.pkl', 'wb') as f:
+        pickle.dump(x, f, -1)
+
+    """
+    with open('../fasttext/fast_test_clean2_low.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x = calc(x)
+    with open('../fasttext/fast_test_clean2_low2.pkl', 'wb') as f:
+        pickle.dump(x, f, -1)
+
+    with open('../fasttext/fast_test_clean2_low_max.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x = calc(x)
+    with open('../fasttext/fast_test_clean2_low_max2.pkl', 'wb') as f:
+        pickle.dump(x, f, -1)
+    """
+
+    logger.info('3')
+
+    with open('../glove/glove_test_clean.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x = calc(x)
+    with open('../glove/glove_test_clean2.pkl', 'wb') as f:
+        pickle.dump(x, f, -1)
+
+    with open('../glove/glove_test_clean_max.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x = calc(x)
+    with open('../glove/glove_test_clean_max2.pkl', 'wb') as f:
+        pickle.dump(x, f, -1)
+
+    x = pd.read_csv('w2v_test.csv').values.astype(np.float32)
+    x = calc(x)
+    with open('w2v_test.pkl', 'wb') as f:
+        pickle.dump(x, f, -1)
+
+    with open('../fasttext/fast_test_clean.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x = calc(x)
+    with open('../fasttext/fast_test_clean2.pkl', 'wb') as f:
+        pickle.dump(x, f, -1)
+
+    with open('../fasttext/fast_test_clean_max.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x = calc(x)
+    with open('../fasttext/fast_test_clean_max2.pkl', 'wb') as f:
+        pickle.dump(x, f, -1)
+
+
+    with open('../fasttext/fast_test_clean_low.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x = calc(x)
+    with open('../fasttext/fast_test_clean_low2.pkl', 'wb') as f:
+        pickle.dump(x, f, -1)
+
+    with open('../fasttext/fast_test_clean_low_max.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x = calc(x)
+    with open('../fasttext/fast_test_clean_low_max2.pkl', 'wb') as f:
+        pickle.dump(x, f, -1)
+
+
+    with open('../glove/glove_test_clean.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x = calc(x)
+    with open('../glove/glove_test_clean2.pkl', 'wb') as f:
+        pickle.dump(x, f, -1)
+
+    with open('../glove/glove_test_clean_max.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x = calc(x)
+    with open('../glove/glove_test_clean_max2.pkl', 'wb') as f:
+        pickle.dump(x, f, -1)
+
 
     with open('../glove/glove_test_pre.pkl', 'rb') as f:
         x = pickle.load(f).astype(np.float32)
@@ -167,7 +334,7 @@ def test_data():
     with open('../glove/glove_test_pre_max2.pkl', 'wb') as f:
         pickle.dump(x, f, -1)
 
-    """        
+
     with open('../lexvec/lexvec_test_100_w12.pkl', 'rb') as f:
         x = pickle.load(f).astype(np.float32)
     x = calc(x)

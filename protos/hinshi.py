@@ -28,19 +28,31 @@ def get_weight(count, D, eps=1, min_count=2):
     else:
         return numpy.log(D / (count + eps))
 
+import aspell
+asp = aspell.Speller('lang', 'en')
+
+
+def get(w):
+    try:
+        return asp.suggest(w)[0]
+    except IndexError:
+        return w
+
 
 def aaa(row):
     # return str(row).lower().split()
-    return [word.lower_ for word in parser(str(row).lower()) if word not in stops]
+    aaa = [word.lower_ for word in parser(str(row).lower()) if word not in stops]
+    #aaa = [word if word in asp else get(word) for word in aaa]
+    return aaa
 
 
 def make_idf():
     print('enter')
 
-    df = pandas.read_csv('../data/train.csv',
+    df = pandas.read_csv('../data/train_clean2.csv',
                          usecols=['question1', 'question2']).values
 
-    df2 = pandas.read_csv('../data/test.csv',
+    df2 = pandas.read_csv('../data/test_clean2.csv',
                           usecols=['question1', 'question2']).values
     """
     p = Pool()
@@ -55,8 +67,8 @@ def make_idf():
         ret += r
 
     counts = Counter(ret)
-    # with open('svo_counter.pkl', 'wb') as f:
-    #    pickle.dump(counts, f, -1)
+    with open('svo_counter.pkl', 'wb') as f:
+        pickle.dump(counts, f, -1)
     """
     with open('svo_counter.pkl', 'rb') as f:
         counts = pickle.load(f)
@@ -84,17 +96,12 @@ def feat(set1, set2):
         val_ent += weights.get(word, 10.)
     return num_ent, val_ent, rate_ent
 
-import Levenshtein
-from jellyfish._jellyfish import damerau_levenshtein_distance, jaro_distance, match_rating_comparison
+
 LIST_TAGS = ['-LRB-', '-PRB-', ',', ':', '.', "''", '""', '#', '``', '$', 'ADD', 'AFX', 'BES', 'CC', 'CD', 'DT', 'EX', 'FW', 'GW', 'HVS', 'HYPH', 'IN', 'JJ', 'JJR', 'JJS', 'LS', 'MD', 'NFP',
              'NIL', 'NN', 'NNP', 'NNPS', 'NNS', 'PDT', 'POS', 'PRP', 'PRP$', 'RB', 'RBR', 'RBS', 'RP', 'SP', 'SYM', 'TO', 'UH', 'VB', 'VBD', 'VBG', 'VBN', 'VBP', 'VBZ', 'WDT', 'WP', 'WP$', 'WRB', 'XX']
 
 
 def load_data(row):
-
-    lev_dist = Levenshtein.distance(str(row[0]).lower(), str(row[1]).lower())
-    jar_dist = jaro_distance(str(row[0]).lower(), str(row[1]).lower())
-    dam_dist = damerau_levenshtein_distance(str(row[0]).lower(), str(row[1]).lower())
 
     q1 = parser(str(row[0]))
     q2 = parser(str(row[1]))
@@ -125,20 +132,21 @@ if __name__ == '__main__':
     logger.setLevel('INFO')
     logger.addHandler(handler)
     p = Pool()
-    df = pandas.read_csv('../data/train.csv',
+    df = pandas.read_csv('../data/train_clean2.csv',
                          usecols=['question1', 'question2']).values
 
     ret = numpy.array(list(p.map(load_data, df)))
     print(ret[:100])
-    with open('train_tag.pkl', 'wb') as f:
+
+    with open('train_tag2.pkl', 'wb') as f:
         pickle.dump(ret, f, -1)
     logger.info('tran end')
 
-    df = pandas.read_csv('../data/test.csv',
+    df = pandas.read_csv('../data/test_clean2.csv',
                          usecols=['question1', 'question2']).values
 
     ret = numpy.array(list(p.map(load_data, df)))
-    with open('test_tag.pkl', 'wb') as f:
+    with open('test_tag2.pkl', 'wb') as f:
         pickle.dump(ret, f, -1)
 
     p.close()

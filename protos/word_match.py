@@ -44,22 +44,22 @@ def _load(args):
 
 
 def train():
-    with open('count_mat.pkl', 'rb') as f:
+    with open('count_mat_sym.pkl', 'rb') as f:
         count_mat = pickle.load(f)
     logger.info('count_mat {}'.format(count_mat.shape))
-    with open('tfidf_mat.pkl', 'rb') as f:
+    with open('tfidf_mat_sym.pkl', 'rb') as f:
         tfidf_mat = pickle.load(f)
     logger.info('tfidf_mat {}'.format(tfidf_mat.shape))
     map_train, map_test, train_num = make_idmap()
 
-    df = pandas.read_csv('../data/train.csv')[['question1', 'question2']].fillna('').values
+    df = pandas.read_csv('../data/train_clean2.csv')[['question1', 'question2']].fillna('').values
     idf, count, tfidf = _train(count_mat[:train_num], tfidf_mat[:train_num], df, map_train)
-    with open('train_sparse.pkl', 'wb') as f:
+    with open('train_sparse_sym.pkl', 'wb') as f:
         pickle.dump((idf, count, tfidf), f, -1)
 
-    df = pandas.read_csv('../data/test.csv')[['question1', 'question2']].fillna('').values
+    df = pandas.read_csv('../data/test_clean2.csv')[['question1', 'question2']].fillna('').values
     idf, count, tfidf = _train(count_mat[train_num:], tfidf_mat[train_num:], df, map_test)
-    with open('test_sparse.pkl', 'wb') as f:
+    with open('test_sparse_sym.pkl', 'wb') as f:
         pickle.dump((idf, count, tfidf), f, -1)
 
 
@@ -95,7 +95,7 @@ def _train(count_mat, tfidf_mat, df, map_train):
 def make_idmap():
     logger.info('start')
 
-    df = pandas.read_csv('../data/train.csv')
+    df = pandas.read_csv('../data/train_clean2.csv')
 
     df1 = df[['qid1', 'question1']]
     df1.columns = ['qid', 'question']
@@ -109,7 +109,7 @@ def make_idmap():
     map_train = dict(zip(df_que['question'], range(df_que.shape[0])))
 
     logger.info('df_que {}'.format(df_que.shape))
-    df = pandas.read_csv('../data/test.csv')
+    df = pandas.read_csv('../data/test_clean2.csv')
     df1 = df[['question1']]
     df1.columns = ['question']
     df2 = df[['question2']]

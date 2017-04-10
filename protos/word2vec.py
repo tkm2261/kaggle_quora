@@ -88,7 +88,7 @@ def _train(count_mat, df, map_train):
 def make_idmap():
     logger.info('start')
 
-    df = pandas.read_csv('../data/train.csv')
+    df = pandas.read_csv('../data/train_clean.csv')
 
     df1 = df[['qid1', 'question1']]
     df1.columns = ['qid', 'question']
@@ -102,7 +102,7 @@ def make_idmap():
     map_train = dict(zip(df_que['question'], range(df_que.shape[0])))
 
     logger.info('df_que {}'.format(df_que.shape))
-    df = pandas.read_csv('../data/test.csv')
+    df = pandas.read_csv('../data/test_clean.csv')
     df1 = df[['question1']]
     df1.columns = ['question']
     df2 = df[['question2']]
@@ -123,7 +123,7 @@ def make_data():
         sentences = [row.words for row in sentences]
     mat = numpy.array(calc(sentences))
 
-    df = pandas.read_csv('../data/train.csv')
+    df = pandas.read_csv('../data/train_clean.csv')
 
     df1 = df[['qid1', 'question1']]
     df1.columns = ['qid', 'question']
@@ -143,7 +143,7 @@ def make_data():
     with open('w2v_vec.pkl', 'wb') as f:
         pickle.dump(df_vec, f, -1)
 
-    df = pandas.read_csv('../data/test.csv')
+    df = pandas.read_csv('../data/test_clean.csv')
     df1 = df[['question1']]
     df1.columns = ['question']
     df2 = df[['question2']]
@@ -177,7 +177,6 @@ if __name__ == '__main__':
     logger.setLevel('INFO')
     logger.addHandler(handler)
 
-    # load_data()
     # train()
     # exit()
 
@@ -187,13 +186,13 @@ if __name__ == '__main__':
     with open('w2v_vec.pkl', 'rb') as f:
         x = pickle.load(f)[list(range(SIZE))].values
 
-    df = pandas.read_csv('../data/train.csv')[['question1', 'question2']].fillna('').values
+    df = pandas.read_csv('../data/train_clean.csv')[['question1', 'question2']].fillna('').values
     df_train = pandas.DataFrame(_train(x, df, map_train))
     df_train.to_csv('w2v_train.csv', index=False)
 
     with open('w2v_vec_test.pkl', 'rb') as f:
         x = pickle.load(f)[list(range(SIZE))].values
 
-    df = pandas.read_csv('../data/test.csv')[['question1', 'question2']].fillna('').values
+    df = pandas.read_csv('../data/test_clean.csv')[['question1', 'question2']].fillna('').values
     df_test = pandas.DataFrame(_train(x, df, map_test))
     df_test.to_csv('w2v_test.csv', index=False)

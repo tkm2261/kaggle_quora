@@ -42,27 +42,36 @@ def _load(args):
         logger.info('sent %s/%s' % (i, 800000))
     return doc_to_sentence(row)
 
+lda = models.ldamulticore.LdaMulticore.load('lda.model')
+
+
+def pred(c):
+    return lda[c]
+
 
 def train():
 
     with open('count_corpus.pkl', 'rb') as f:
         id_corpus = pickle.load(f)
 
-    lda = models.ldamulticore.LdaMulticore(corpus=id_corpus, num_topics=50)
+    #lda = models.ldamulticore.LdaMulticore(corpus=id_corpus, num_topics=50)
 
-    lda.save('lda50/lda.model')
-    lda = models.ldamulticore.LdaMulticore.load('lda50/lda.model')
-    result = numpy.asarray(corpus2csc(lda[id_corpus]).T.todense())
+    # lda.save('lda.model')
 
+    p = Pool()
+    aaa = p.map(pred, id_corpus)
+    result = numpy.asarray(corpus2csc(aaa).T.todense())
+    p.close()
+    p.join
     map_train, map_test, train_num = make_idmap()
 
-    df = pandas.read_csv('../data/train.csv')[['question1', 'question2']].fillna('').values
+    df = pandas.read_csv('../data/train_clean.csv')[['question1', 'question2']].fillna('').values
     df_train = pandas.DataFrame(_train(result[:train_num], df, map_train))
-    df_train.to_csv('lda100/lda_train.csv', index=False)
+    df_train.to_csv('lda_train.csv', index=False)
 
-    df = pandas.read_csv('../data/test.csv')[['question1', 'question2']].fillna('').values
+    df = pandas.read_csv('../data/test_clean.csv')[['question1', 'question2']].fillna('').values
     df_test = pandas.DataFrame(_train(result[train_num:], df, map_test))
-    df_test.to_csv('lda100/lda_test.csv', index=False)
+    df_test.to_csv('lda_test.csv', index=False)
 
 
 def cos_sim(v1, v2):
@@ -92,7 +101,7 @@ def _train(count_mat, df, map_train):
 def make_idmap():
     logger.info('start')
 
-    df = pandas.read_csv('../data/train.csv')
+    df = pandas.read_csv('../data/train_clean.csv')
 
     df1 = df[['qid1', 'question1']]
     df1.columns = ['qid', 'question']
@@ -106,7 +115,7 @@ def make_idmap():
     map_train = dict(zip(df_que['question'], range(df_que.shape[0])))
 
     logger.info('df_que {}'.format(df_que.shape))
-    df = pandas.read_csv('../data/test.csv')
+    df = pandas.read_csv('../data/test_clean.csv')
     df1 = df[['question1']]
     df1.columns = ['question']
     df2 = df[['question2']]

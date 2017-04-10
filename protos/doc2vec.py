@@ -11,10 +11,30 @@ from logging import getLogger
 logger = getLogger(__name__)
 
 wnl = WordNetLemmatizer()
+import aspell
+from nltk.corpus import stopwords
+
+asp = aspell.Speller('lang', 'en')
+stops = set(stopwords.words("english")) | set(['?', ',', '.', ';', ':', '"', "'"])
+
+
+def get(w):
+    try:
+        return asp.suggest(w)[0]
+    except IndexError:
+        return w
 
 
 def split_into_words(text):
-    return [wnl.lemmatize(t) for t in word_tokenize(text)]
+    return [wnl.lemmatize(t)
+            for t in word_tokenize(text.lower())
+            if t not in stops]
+    """
+    return [wnl.lemmatize(t) if t in asp
+            else wnl.lemmatize(get(t))
+            for t in word_tokenize(text.lower())
+            if t not in stops]
+    """
 
 
 def doc_to_sentence(doc, name):
@@ -39,7 +59,7 @@ def _load(args):
 
 def load_data():
 
-    df = pandas.read_csv('../data/train.csv')
+    df = pandas.read_csv('../data/train_clean2.csv')
 
     df1 = df[['qid1', 'question1']]
     df1.columns = ['qid', 'question']
@@ -50,7 +70,7 @@ def load_data():
     df_que = df_que.drop_duplicates().fillna('').sort_values('qid')
     df_que['qid'] = ['TRAIN_%s' % i for i in df_que['qid']]
 
-    df = pandas.read_csv('../data/test.csv')
+    df = pandas.read_csv('../data/test_clean2.csv')
     df1 = df[['question1']]
     df1.columns = ['question']
     df2 = df[['question2']]
@@ -118,7 +138,10 @@ if __name__ == '__main__':
     logger.setLevel('INFO')
     logger.addHandler(handler)
 
-    # load_data()
+    load_data()
+
+    exit()
+
     # train()
     # with open('corpus.pkl', 'rb') as f:
     #    sentences = pickle.load(f)

@@ -18,9 +18,21 @@ wnl = WordNetLemmatizer()
 from nltk.corpus import stopwords
 stops = set(stopwords.words("english")) | set(['?', ',', '.', ';', ':', '"', "'"])
 
+import aspell
+asp = aspell.Speller('lang', 'en')
+
+
+def get(w):
+    try:
+        return asp.suggest(w)[0]
+    except IndexError:
+        return w
+
 
 def split_into_words(text):
-    return [wnl.lemmatize(t) for t in word_tokenize(text) if t not in stops]
+    return [wnl.lemmatize(t)
+            for t in word_tokenize(text.lower())
+            if t not in stops]
 
 
 def doc_to_sentence(doc):
@@ -45,7 +57,7 @@ def _load(args):
 
 def load_data():
 
-    df = pandas.read_csv('../data/train.csv')
+    df = pandas.read_csv('../data/train_clean_omit.csv')
 
     df1 = df[['qid1', 'question1']]
     df1.columns = ['qid', 'question']
@@ -57,7 +69,7 @@ def load_data():
     logger.info('df_que {}'.format(df_que.shape))
     train_num = df_que.shape[0]
 
-    df = pandas.read_csv('../data/test.csv')
+    df = pandas.read_csv('../data/test_clean_omit.csv')
     df1 = df[['question1']]
     df1.columns = ['question']
     df2 = df[['question2']]
@@ -107,38 +119,14 @@ def train():
         tfidf_mat = pickle.load(f)
     logger.info('tfidf_mat {}'.format(tfidf_mat.shape))
     map_train, map_test, train_num = make_idmap()
-
-    df = pandas.read_csv('../data/train.csv')[['question1', 'question2']].fillna('').values
+    """
+    df = pandas.read_csv('../data/train_clean_omit.csv')[['question1', 'question2']].fillna('').values
     df_train = _train(count_mat[:train_num], tfidf_mat[:train_num], df, map_train)
-    df_train.to_csv('count_tfidf_train.csv', index=False)
-
-    df = pandas.read_csv('../data/test.csv')[['question1', 'question2']].fillna('').values
+    df_train.to_csv('count_tfidf_train_clean_omit.csv', index=False)
+    """
+    df = pandas.read_csv('../data/test_clean_omit.csv')[['question1', 'question2']].fillna('').values
     df_test = _train(count_mat[train_num:], tfidf_mat[train_num:], df, map_test)
-    df_test.to_csv('count_tfidf_test.csv', index=False)
-
-from numba import jit
-
-
-@jit
-def calc(count_vec1, count_vec2, tfidf_vec1, tfidf_vec2):
-    wn1 = count_vec1.sum()
-    wn2 = count_vec2.sum()
-
-    tmp = (count_vec1 * count_vec2)
-    same_num = numpy.where(tmp > 0, 1, 0).sum()
-
-    tmp = numpy.sqrt(tfidf_vec1 * tfidf_vec2)
-    tmp = tmp[tmp > 0]
-    if tmp.shape[0] > 0:
-        max_tfidf = tmp.max()
-        min_tfidf = tmp.min()
-        avg_tfidf = tmp.mean()
-    else:
-        max_tfidf = 0.
-        min_tfidf = 0.
-        avg_tfidf = 0.
-
-    return numpy.array([wn1, wn2, same_num, max_tfidf, min_tfidf, avg_tfidf])
+    df_test.to_csv('count_tfidf_test_clean_omit.csv', index=False)
 
 
 def _train(count_mat, tfidf_mat, df, map_train):
@@ -229,58 +217,10 @@ def _train(count_mat, tfidf_mat, df, map_train):
                                            ])
 
 
-def _train2(count_mat, tfidf_mat, df, map_train):
-    list_data = []
-    cnt = 0
-    for q1, q2 in df:
-        cnt += 1
-        if cnt % 1000 == 0:
-            logger.info('%s / %s' % (cnt, df.shape[0]))
-
-        try:
-            idx1 = map_train[q1]
-            idx2 = map_train[q2]
-        except KeyError:
-            logger.info('no key %s %s' % (q1, q2))
-            list_data.append(numpy.array([0, 0, 0, 0, 0, 0]))
-            continue
-        count_vec1 = count_mat[idx1].toarray()
-        count_vec2 = count_mat[idx2].toarray()
-        tfidf_vec1 = tfidf_mat[idx1].toarray()
-        tfidf_vec2 = tfidf_mat[idx2].toarray()
-        list_data.append(calc(count_vec1, count_vec2, tfidf_vec1, tfidf_vec2))
-        """
-        count_vec1 = count_mat[idx1].toarray()
-        count_vec2 = count_mat[idx2].toarray()
-        wn1 = count_vec1.sum()
-        wn2 = count_vec2.sum()
-
-        tmp = (count_vec1 * count_vec2)
-        same_num = numpy.where(tmp > 0, 1, 0).sum()
-
-        tfidf_vec1 = tfidf_mat[idx1].toarray()
-        tfidf_vec2 = tfidf_mat[idx2].toarray()
-
-        tmp = numpy.sqrt(tfidf_vec1 * tfidf_vec2)
-
-        if len(tmp) > 0:
-            max_tfidf = max(tmp)
-            min_tfidf = min(tmp)
-            avg_tfidf = numpy.mean(tmp)
-        else:
-            max_tfidf = 0
-            min_tfidf = 0
-            avg_tfidf = 0
- 
-        list_data.append([wn1, wn2, same_num, max_tfidf, min_tfidf, avg_tfidf])
-        """
-    return pandas.DataFrame(list_data, columns=['wn1', 'wn2', 'same_num', 'max_tfidf', 'min_tfidf', 'avg_tfidf'])
-
-
 def make_idmap():
     logger.info('start')
 
-    df = pandas.read_csv('../data/train.csv')
+    df = pandas.read_csv('../data/train_clean_omit.csv')
 
     df1 = df[['qid1', 'question1']]
     df1.columns = ['qid', 'question']
@@ -294,7 +234,7 @@ def make_idmap():
     map_train = dict(zip(df_que['question'], range(df_que.shape[0])))
 
     logger.info('df_que {}'.format(df_que.shape))
-    df = pandas.read_csv('../data/test.csv')
+    df = pandas.read_csv('../data/test_clean_omit.csv')
     df1 = df[['question1']]
     df1.columns = ['question']
     df2 = df[['question2']]
@@ -324,5 +264,5 @@ if __name__ == '__main__':
     logger.setLevel('INFO')
     logger.addHandler(handler)
 
-    # load_data()
+    load_data()
     train()

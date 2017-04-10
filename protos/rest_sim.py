@@ -22,7 +22,7 @@ from scipy.spatial.distance import euclidean, cosine
 
 def load_wordvec():
 
-    f = open('../glove/glove.840B.300d.txt', 'r')
+    f = open('../fasttext/model_clean2_l.vec', 'r')
     map_result = {}
     f.readline()
     for line in f:
@@ -33,7 +33,7 @@ def load_wordvec():
     return map_result
 
 map_wordvec = load_wordvec()
-mean_vec = numpy.mean([val for val in map_wordvec.values() if val.shape[0] == 300], axis=0)
+mean_vec = numpy.mean([val for val in map_wordvec.values() if val.shape[0] == 100], axis=0)
 logger.info('size: {}'.format(mean_vec.shape))
 
 
@@ -84,22 +84,20 @@ if __name__ == '__main__':
     logger.setLevel('INFO')
     logger.addHandler(handler)
     p = Pool()
-    df = pandas.read_csv('../data/train.csv',
+    df = pandas.read_csv('../data/train_clean2.csv',
                          usecols=['question1', 'question2']).values
 
     ret = numpy.array(list(p.map(load_data, df)))
     print(ret[:100])
-    with open('train_rest_sim2.pkl', 'wb') as f:
+    with open('train_rest_sim3.pkl', 'wb') as f:
         pickle.dump(ret, f, -1)
     logger.info('tran end')
 
-    exit()
-
-    df = pandas.read_csv('../data/test.csv',
+    df = pandas.read_csv('../data/test_clean2.csv',
                          usecols=['question1', 'question2']).values
 
     ret = numpy.array(list(p.map(load_data, df)))
-    with open('test_rest_sim2.pkl', 'wb') as f:
+    with open('test_rest_sim3.pkl', 'wb') as f:
         pickle.dump(ret, f, -1)
 
     p.close()

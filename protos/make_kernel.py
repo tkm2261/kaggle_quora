@@ -26,8 +26,8 @@ CHUNK_SIZE = 100000
 from nltk.corpus import stopwords
 stops = set(stopwords.words("english"))
 
-df_train = pd.read_csv('../data/train.csv')
-df_test = pd.read_csv('../data/test.csv')
+df_train = pd.read_csv('../data/train_clean2.csv')
+df_test = pd.read_csv('../data/test_clean2.csv')
 train_qs = pd.Series(df_train['question1'].tolist() + df_train['question2'].tolist()).astype(str)
 D = df_train.shape[0]
 
@@ -45,8 +45,25 @@ parser = English()
 wnl = WordNetLemmatizer()
 
 
-def split_word(row):
-    return str(row).lower().split()
+import aspell
+asp = aspell.Speller('lang', 'en')
+
+
+def get(w):
+    try:
+        return asp.suggest(w)[0]
+    except IndexError:
+        return w
+
+
+def split_word(text):
+    text = str(text)
+    return [wnl.lemmatize(t)
+            for t in word_tokenize(text.lower())
+            if t not in stops]
+
+# def split_word(row):
+#    return str(row).lower().split()
 
 logger.info('count start')
 words = split_word(" ".join(train_qs))
@@ -106,11 +123,20 @@ def make_kernel(df_train, df_test):
     x_test = pd.DataFrame()
     x_train['word_match'] = train_word_match
     x_train['tfidf_word_match'] = tfidf_train_word_match
-    x_test['word_match'] = df_test.apply(word_match_share, axis=1, raw=True)
-    x_test['tfidf_word_match'] = df_test.apply(tfidf_word_match_share, axis=1, raw=True)
+    x_train.to_csv('kernel_train3.csv', index=False)
 
-    x_train.to_csv('kernel_train2.csv', index=False)
-    x_test.to_csv('kernel_test2.csv', index=False)
+    logger.info('count_share start')
+    test_word_match = df_test.apply(word_match_share, axis=1, raw=True)
+    logger.info('tfidf_share start')
+    p = Pool()
+    tfidf_test_word_match = p.map(tfidf_word_match_share, df_test[['question1', 'question2']].values)
+    p.close()
+    p.join()
+
+    x_test['word_match'] = test_word_match
+    x_test['tfidf_word_match'] = tfidf_test_word_match
+
+    x_test.to_csv('kernel_test3.csv', index=False)
 
 
 if __name__ == '__main__':

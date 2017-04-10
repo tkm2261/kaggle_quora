@@ -25,7 +25,7 @@ def wglobal(df, d):
 
 def load_data():
 
-    df = pandas.read_csv('../data/train.csv')
+    df = pandas.read_csv('../data/train_clean2.csv')
 
     df1 = df[['qid1', 'question1']]
     df1.columns = ['qid', 'question']
@@ -37,7 +37,7 @@ def load_data():
     logger.info('df_que {}'.format(df_que.shape))
     train_num = df_que.shape[0]
 
-    df = pandas.read_csv('../data/test.csv')
+    df = pandas.read_csv('../data/test_clean2.csv')
     df1 = df[['question1']]
     df1.columns = ['question']
     df2 = df[['question2']]
@@ -74,13 +74,13 @@ def train():
     logger.info('tfidf_mat {}'.format(tfidf_mat.shape))
     map_train, map_test, train_num = make_idmap()
 
-    df = pandas.read_csv('../data/train.csv')[['question1', 'question2']].fillna('').values
+    df = pandas.read_csv('../data/train_clean2.csv')[['question1', 'question2']].fillna('').values
     df_train = _train(count_mat[:train_num], tfidf_mat[:train_num], df, map_train)
-    df_train.to_csv('count_tfidf_norm_train.csv', index=False)
+    df_train.to_csv('count_tfidf_norm_train_clean2.csv', index=False)
 
-    df = pandas.read_csv('../data/test.csv')[['question1', 'question2']].fillna('').values
+    df = pandas.read_csv('../data/test_clean2.csv')[['question1', 'question2']].fillna('').values
     df_test = _train(count_mat[train_num:], tfidf_mat[train_num:], df, map_test)
-    df_test.to_csv('count_tfidf_norm_test.csv', index=False)
+    df_test.to_csv('count_tfidf_norm_test_clean2.csv', index=False)
 
 
 def _train(count_mat, tfidf_mat, df, map_train):
@@ -170,7 +170,7 @@ def _train(count_mat, tfidf_mat, df, map_train):
 def make_idmap():
     logger.info('start')
 
-    df = pandas.read_csv('../data/train.csv')
+    df = pandas.read_csv('../data/train_clean2.csv')
 
     df1 = df[['qid1', 'question1']]
     df1.columns = ['qid', 'question']
@@ -184,7 +184,7 @@ def make_idmap():
     map_train = dict(zip(df_que['question'], range(df_que.shape[0])))
 
     logger.info('df_que {}'.format(df_que.shape))
-    df = pandas.read_csv('../data/test.csv')
+    df = pandas.read_csv('../data/test_clean2.csv')
     df1 = df[['question1']]
     df1.columns = ['question']
     df2 = df[['question2']]

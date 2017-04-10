@@ -47,22 +47,22 @@ def train():
 
     with open('count_corpus.pkl', 'rb') as f:
         id_corpus = pickle.load(f)
-    """
-    lsi = models.lsimodel.LsiModel(corpus=id_corpus, num_topics=20)
-    lsi.save('lsi50/lsi.model')
-    """
-    lsi = models.lsimodel.LsiModel.load('lsi50/lsi.model')
+
+    lsi = models.lsimodel.LsiModel(corpus=id_corpus, num_topics=50)
+    lsi.save('lsi.model')
+
+    lsi = models.lsimodel.LsiModel.load('lsi.model')
     result = numpy.asarray(corpus2csc(lsi[id_corpus]).T.todense())
 
     map_train, map_test, train_num = make_idmap()
 
-    df = pandas.read_csv('../data/train.csv')[['question1', 'question2']].fillna('').values
+    df = pandas.read_csv('../data/train_clean.csv')[['question1', 'question2']].fillna('').values
     df_train = pandas.DataFrame(_train(result[:train_num], df, map_train))
-    df_train.to_csv('lsi50/lsi_train.csv', index=False)
+    df_train.to_csv('lsi_train.csv', index=False)
 
-    df = pandas.read_csv('../data/test.csv')[['question1', 'question2']].fillna('').values
+    df = pandas.read_csv('../data/test_clean.csv')[['question1', 'question2']].fillna('').values
     df_test = pandas.DataFrame(_train(result[train_num:], df, map_test))
-    df_test.to_csv('lsi50/lsi_test.csv', index=False)
+    df_test.to_csv('lsi_test.csv', index=False)
 
 
 def dist(v1, v2):
@@ -92,7 +92,7 @@ def _train(count_mat, df, map_train):
 def make_idmap():
     logger.info('start')
 
-    df = pandas.read_csv('../data/train.csv')
+    df = pandas.read_csv('../data/train_clean.csv')
 
     df1 = df[['qid1', 'question1']]
     df1.columns = ['qid', 'question']
@@ -106,7 +106,7 @@ def make_idmap():
     map_train = dict(zip(df_que['question'], range(df_que.shape[0])))
 
     logger.info('df_que {}'.format(df_que.shape))
-    df = pandas.read_csv('../data/test.csv')
+    df = pandas.read_csv('../data/test_clean.csv')
     df1 = df[['question1']]
     df1.columns = ['question']
     df2 = df[['question2']]

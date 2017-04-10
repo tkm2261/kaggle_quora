@@ -21,6 +21,16 @@ from collections import Counter
 from nltk.corpus import stopwords
 stops = set(stopwords.words("english"))
 
+import aspell
+asp = aspell.Speller('lang', 'en')
+
+
+def get(w):
+    try:
+        return asp.suggest(w)[0]
+    except IndexError:
+        return w
+
 
 def get_weight(count, D, eps=1, min_count=2):
     if count < min_count:
@@ -31,18 +41,20 @@ def get_weight(count, D, eps=1, min_count=2):
 
 def aaa(row):
     # return str(row).lower().split()
-    return [word.lower_ for word in parser(str(row).lower()) if word not in stops]
+    aaa = [word.lower_ for word in parser(str(row).lower()) if word not in stops]
+    #aaa = [word if word in asp else get(word) for word in aaa]
+    return aaa
 
 
 def make_idf():
     print('enter')
 
-    df = pandas.read_csv('../data/train.csv',
+    df = pandas.read_csv('../data/train_clean_omit.csv',
                          usecols=['question1', 'question2']).values
 
-    df2 = pandas.read_csv('../data/test.csv',
+    df2 = pandas.read_csv('../data/test_clean_omit.csv',
                           usecols=['question1', 'question2']).values
-    """
+
     p = Pool()
     _ret = p.map(aaa, df[:, 0])
     _ret = p.map(aaa, df[:, 1])
@@ -55,12 +67,12 @@ def make_idf():
         ret += r
 
     counts = Counter(ret)
-    # with open('svo_counter.pkl', 'wb') as f:
-    #    pickle.dump(counts, f, -1)
+    with open('svo_counter.pkl', 'wb') as f:
+        pickle.dump(counts, f, -1)
     """
     with open('svo_counter.pkl', 'rb') as f:
         counts = pickle.load(f)
-
+    """
     weights = {word: get_weight(count, (df.shape[0] + df2.shape[0]) * 2) for word, count in counts.items()}
     print(len(weights))
     print('exit')
@@ -80,6 +92,10 @@ def feat(set1, set2):
         rate_ent = 0
 
     for word in sets:
+        #word = str(word)
+        # if word not in asp:
+        #    word = get(word)
+
         num_ent += 1  #
         val_ent += weights.get(word, 10.)
     return num_ent, val_ent, rate_ent
@@ -102,12 +118,17 @@ def load_data(row):
 
     num_ent, val_ent, rate_ent = feat(set_ent1, set_ent2)
 
+    set_ent1 = set([' '.join(t.orth_ for t in ele) for ele in q1.ents])
+    set_ent2 = set([' '.join(t.orth_ for t in ele) for ele in q2.ents])
+
+    num_ent2, val_ent2, rate_ent2 = feat(set_ent1, set_ent2)
+
     list_last1 = [ele.lower_ for ele in q1 if ele.pos_ != 'PUNCT']
     list_last2 = [ele.lower_ for ele in q2 if ele.pos_ != 'PUNCT']
     num_for = 0
     val_for = 0.
     for i in range(min(len(list_last1), len(list_last2))):
-        if list_last1[i] == list_last2[i]:  # or match_rating_comparison(list_last1[i], list_last2[i]):
+        if list_last1[i] == list_last2[i] or match_rating_comparison(list_last1[i], list_last2[i]):
             num_for += 1
             val_for += weights.get(list_last1[i], 0)
         else:
@@ -118,7 +139,7 @@ def load_data(row):
     num_rev = 0
     val_rev = 0.
     for i in range(min(len(list_last1), len(list_last2))):
-        if list_last1[i] == list_last2[i]:  # or match_rating_comparison(list_last1[i], list_last2[i]):
+        if list_last1[i] == list_last2[i] or match_rating_comparison(list_last1[i], list_last2[i]):
             num_rev += 1
             val_rev += weights.get(list_last1[i], 0)
         else:
@@ -202,15 +223,15 @@ def load_data(row):
 
     num_o, val_o, rate_o = feat(set_o1, set_o2)
 
-    list_ret = [num_ent, num_rev, num_for, lev_dist, jar_dist, dam_dist,
+    list_ret = [num_ent, num_ent2, num_rev, num_for, lev_dist, jar_dist, dam_dist,
                 num_sub, num_root, num_advmod, num_advcl, num_aux,  # num_poss,
                 num_noun, num_verb, num_adv,  # num_adj,
                 num_svo, num_s, num_v, num_o]
-    list_ret += [val_ent, val_rev, val_for,
+    list_ret += [val_ent, val_ent2, val_rev, val_for,
                  val_sub, val_root, val_advmod, val_advcl, val_aux, val_dobj,  # val_poss,
                  val_noun, val_verb, val_adv,  # val_adj,
                  val_svo, val_s, val_v, val_o]
-    list_ret += [rate_ent,
+    list_ret += [rate_ent, rate_ent2,
                  rate_sub, rate_root, rate_advmod, rate_advcl, rate_aux, rate_dobj,  # rate_poss,
                  rate_noun, rate_verb, rate_adv,  # rate_adj,
                  rate_svo, rate_s, rate_v, rate_o]
@@ -234,21 +255,22 @@ if __name__ == '__main__':
     logger.setLevel('INFO')
     logger.addHandler(handler)
     p = Pool()
-    df = pandas.read_csv('../data/train.csv',
+
+    df = pandas.read_csv('../data/train_clean_omit.csv',
                          usecols=['question1', 'question2']).values
 
     ret = numpy.array(list(p.map(load_data, df)))
     print(ret[:100])
-    with open('train_svo2.pkl', 'wb') as f:
+    with open('train_svo_omit.pkl', 'wb') as f:
         pickle.dump(ret, f, -1)
     logger.info('tran end')
-    exit()
-    df = pandas.read_csv('../data/test.csv',
+    """
+    df = pandas.read_csv('../data/test_clean_omit.csv',
                          usecols=['question1', 'question2']).values
 
     ret = numpy.array(list(p.map(load_data, df)))
-    with open('test_svo2.pkl', 'wb') as f:
+    with open('test_svo3.pkl', 'wb') as f:
         pickle.dump(ret, f, -1)
-
+    """
     p.close()
     p.join()
