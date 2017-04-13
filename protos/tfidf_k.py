@@ -20,7 +20,7 @@ import gc
 from logging import getLogger
 logger = getLogger(__name__)
 
-from features_tmp import FEATURE
+from features_tmp2 import FEATURE
 
 CHUNK_SIZE = 100000
 
@@ -51,6 +51,19 @@ def train_data():
     logger.info('{}'.format(x_train.shape))
 
     x = pd.read_csv('count_tfidf_train_clean2_dep.csv').values.astype(np.float32)
+    x_train = np.c_[x_train, x]
+    logger.info('{}'.format(x_train.shape))
+
+    x = pd.read_csv('count_tfidf_train_clean2_sym.csv').values.astype(np.float32)
+    x_train = np.c_[x_train, x]
+    logger.info('{}'.format(x_train.shape))
+
+    x = pd.read_csv('count_tfidf_train_clean2_aspell.csv').values.astype(np.float32)
+    x_train = np.c_[x_train, x]
+    logger.info('{}'.format(x_train.shape))
+
+    with open('train_3gram.pkl', 'rb') as f:
+        x = pickle.load(f)
     x_train = np.c_[x_train, x]
     logger.info('{}'.format(x_train.shape))
 
@@ -120,6 +133,10 @@ def train_data():
     x_train = np.c_[x_train, x]
     logger.info('{}'.format(x_train.shape))
 
+    x = pd.read_csv('train_cnum.csv', header=None).values
+    x_train = np.c_[x_train, x]
+    logger.info('{}'.format(x_train.shape))
+
     x_train[np.isnan(x_train)] = -100
     x_train[np.isinf(x_train)] = -100
     return x_train  # [:, FEATURE]
@@ -135,7 +152,6 @@ def test_data():
 
     x = da.from_array(x, chunks=CHUNK_SIZE)
     x_test = da.concatenate([x_test, x], axis=1)
-    logger.info('{}'.format(x_test.shape))
     logger.info('{}'.format(x_test.shape))
     x = pd.read_csv('kernel_test.csv').values.astype(np.float32)
     x = da.from_array(x, chunks=CHUNK_SIZE)
@@ -165,6 +181,22 @@ def test_data():
 
     x = pd.read_csv('count_tfidf_test_clean2_dep.csv').values.astype(np.float32)
     x = da.from_array(x, chunks=CHUNK_SIZE)
+    x_test = da.concatenate([x_test, x], axis=1)
+    logger.info('{}'.format(x_test.shape))
+
+    x = pd.read_csv('count_tfidf_test_clean2_sym.csv').values.astype(np.float32)
+    x = da.from_array(x, chunks=CHUNK_SIZE)
+    x_test = da.concatenate([x_test, x], axis=1)
+    logger.info('{}'.format(x_test.shape))
+
+    x = pd.read_csv('count_tfidf_test_clean2_aspell.csv').values.astype(np.float32)
+    x = da.from_array(x, chunks=CHUNK_SIZE)
+    x_test = da.concatenate([x_test, x], axis=1)
+    logger.info('{}'.format(x_test.shape))
+
+    with open('test_3gram.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+        x = da.from_array(x, chunks=CHUNK_SIZE)
     x_test = da.concatenate([x_test, x], axis=1)
     logger.info('{}'.format(x_test.shape))
 
@@ -245,7 +277,7 @@ def test_data():
     logger.info('{}'.format(x_test.shape))
 
     logger.info('8')
-
+    """
     with open('model_first.pkl', 'rb') as f:
         clf = pickle.load(f)
 
@@ -260,9 +292,15 @@ def test_data():
     preds = np.concatenate(preds)[:, 1]
     with open('test_preds2.pkl', 'wb') as f:
         pickle.dump(preds, f, -1)
+    """
     with open('test_preds2.pkl', 'rb') as f:
         preds = pickle.load(f).astype(np.float32)
 
+    x = preds.reshape((-1, 1))
+    x = da.from_array(x, chunks=CHUNK_SIZE)
+    x_test = da.concatenate([x_test, x], axis=1)
+
+    x = pd.read_csv('test_cnum.csv', header=None).values
     x = preds.reshape((-1, 1))
     x = da.from_array(x, chunks=CHUNK_SIZE)
     x_test = da.concatenate([x_test, x], axis=1)
@@ -303,7 +341,7 @@ if __name__ == '__main__':
     logger.info('load start')
     df_train = pd.read_csv('../data/train.csv', usecols=['is_duplicate'])
     df_test = pd.read_csv('../data/test.csv', usecols=['test_id'])
-
+    """
     ################
     #x_train_rev = train_data_rev()
     x_train = train_data()
@@ -328,20 +366,20 @@ if __name__ == '__main__':
     logger.info('sampling start')
 
     from sklearn.cross_validation import train_test_split
-    #{'min_child_weight': 5, 'subsample': 0.9, 'seed': 2261, 'reg_lambda': 1, 'num_leaves': 1000, 'min_child_samples': 100, 'max_depth': 10, 'boosting_type': 'gbdt', 'reg_alpha': 1, 'n_estimators': 619, 'min_split_gain': 0, 'colsample_bytree': 0.7, 'learning_rate': 0.1, 'max_bin': 500}
+    #{'colsample_bytree': 0.7, 'max_bin': 500, 'boosting_type': 'gbdt', 'learning_rate': 0.01, 'num_leaves': 1300, 'reg_lambda': 0, 'max_depth': 10, 'subsample': 0.8, 'min_child_samples': 100, 'min_child_weight': 7, 'reg_alpha': 1, 'min_split_gain': 0, 'n_estimators': 853, 'seed': 2261}
 
     # x_train, x_valid, y_train, y_valid = train_test_split(x_train, y_train, test_size=0.2, random_state=4242)
     all_params = {'max_depth': [10],
                   'learning_rate': [0.01],  # [0.06, 0.1, 0.2],
-                  'n_estimators': [10000],
-                  'min_child_weight': [6],
+                  'n_estimators': [845],
+                  'min_child_weight': [7],
                   'colsample_bytree': [0.7],
                   'boosting_type': ['gbdt'],
                   'num_leaves': [1300],
-                  'subsample': [0.5],
+                  'subsample': [0.8],
                   'min_child_samples': [100],
                   'reg_alpha': [1],
-                  'reg_lambda': [1],
+                  'reg_lambda': [0],
                   'max_bin': [500],
                   'min_split_gain': [0],
                   #'is_unbalance': [True, False],
@@ -416,9 +454,9 @@ if __name__ == '__main__':
                 list_best_iter.append(clf.best_iteration)
             else:
                 list_best_iter.append(params['n_estimators'])
-            break
-        # with open('tfidf_all_pred2.pkl', 'wb') as f:
-        #    pickle.dump(all_pred, f, -1)
+            # break
+        with open('tfidf_all_pred7.pkl', 'wb') as f:
+            pickle.dump(all_pred, f, -1)
 
         logger.info('trees: {}'.format(list_best_iter))
         params['n_estimators'] = np.mean(list_best_iter, dtype=int)
@@ -451,7 +489,7 @@ if __name__ == '__main__':
         pickle.dump(clf, f, -1)
     del x_train
     gc.collect()
-
+    """
     with open('model.pkl', 'rb') as f:
         clf = pickle.load(f)
     imp = pd.DataFrame(clf.feature_importances_, columns=['imp'])
