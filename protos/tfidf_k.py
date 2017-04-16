@@ -20,7 +20,7 @@ import gc
 from logging import getLogger
 logger = getLogger(__name__)
 
-from features_tmp2 import FEATURE
+from features_tmp import FEATURE
 
 CHUNK_SIZE = 100000
 
@@ -128,18 +128,18 @@ def train_data():
     x_train = np.c_[x_train, x]
     logger.info('{}'.format(x_train.shape))
 
-    with open('tfidf_all_pred2.pkl', 'rb') as f:
-        x = pickle.load(f).astype(np.float32)
+    x = pd.read_csv('train_cnum.csv', header=None).values
     x_train = np.c_[x_train, x]
     logger.info('{}'.format(x_train.shape))
 
-    x = pd.read_csv('train_cnum.csv', header=None).values
+    with open('tfidf_all_pred2_2.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
     x_train = np.c_[x_train, x]
     logger.info('{}'.format(x_train.shape))
 
     x_train[np.isnan(x_train)] = -100
     x_train[np.isinf(x_train)] = -100
-    return x_train  # [:, FEATURE]
+    return x_train[:, FEATURE]
 
 import dask.array as da
 
@@ -277,35 +277,34 @@ def test_data():
     logger.info('{}'.format(x_test.shape))
 
     logger.info('8')
+
+    x = pd.read_csv('test_cnum.csv').values.reshape((-1, 1))
+    x = da.from_array(x, chunks=CHUNK_SIZE)
+    x_test = da.concatenate([x_test, x], axis=1)
     """
-    with open('model_first.pkl', 'rb') as f:
+    with open('model_first2.pkl', 'rb') as f:
         clf = pickle.load(f)
 
     preds = []
     for i in range(int(x_test.shape[0] / CHUNK_SIZE) + 1):
         logger.debug('chunk %s' % i)
         d = x_test[i * CHUNK_SIZE: (i + 1) * CHUNK_SIZE].compute()
-        p_test = clf.predict_proba(d)
+        p_test = clf.predict_proba(d, num_iteration=6459)
         preds.append(p_test)
         del d
         gc.collect()
     preds = np.concatenate(preds)[:, 1]
-    with open('test_preds2.pkl', 'wb') as f:
+    with open('test_preds2_2.pkl', 'wb') as f:
         pickle.dump(preds, f, -1)
     """
-    with open('test_preds2.pkl', 'rb') as f:
+    with open('test_preds2_2.pkl', 'rb') as f:
         preds = pickle.load(f).astype(np.float32)
 
     x = preds.reshape((-1, 1))
     x = da.from_array(x, chunks=CHUNK_SIZE)
     x_test = da.concatenate([x_test, x], axis=1)
 
-    x = pd.read_csv('test_cnum.csv', header=None).values
-    x = preds.reshape((-1, 1))
-    x = da.from_array(x, chunks=CHUNK_SIZE)
-    x_test = da.concatenate([x_test, x], axis=1)
-
-    return x_test  # [:, FEATURE]
+    return x_test[:, FEATURE]
 
 
 def calc_weight(y_train, pos_rate=0.165):
@@ -341,9 +340,9 @@ if __name__ == '__main__':
     logger.info('load start')
     df_train = pd.read_csv('../data/train.csv', usecols=['is_duplicate'])
     df_test = pd.read_csv('../data/test.csv', usecols=['test_id'])
-    """
+
     ################
-    #x_train_rev = train_data_rev()
+    # x_train_rev = train_data_rev()
     x_train = train_data()
     logger.info('x_shape: {}'.format(x_train.shape))
     #####################
@@ -352,7 +351,7 @@ if __name__ == '__main__':
     with open('tfidf_all_pred2.pkl', 'rb') as f:
         cross_pred = pickle.load(f).astype(np.float32)
     y_train_mod = y_train.copy()
-    #y_train_mod[cross_pred > 0.99] = 1
+    # y_train_mod[cross_pred > 0.99] = 1
 
     sample_weight = calc_weight(y_train)
     sample_weight_mod = calc_weight(y_train_mod)
@@ -369,18 +368,18 @@ if __name__ == '__main__':
     #{'colsample_bytree': 0.7, 'max_bin': 500, 'boosting_type': 'gbdt', 'learning_rate': 0.01, 'num_leaves': 1300, 'reg_lambda': 0, 'max_depth': 10, 'subsample': 0.8, 'min_child_samples': 100, 'min_child_weight': 7, 'reg_alpha': 1, 'min_split_gain': 0, 'n_estimators': 853, 'seed': 2261}
 
     # x_train, x_valid, y_train, y_valid = train_test_split(x_train, y_train, test_size=0.2, random_state=4242)
-    all_params = {'max_depth': [10],
-                  'learning_rate': [0.01],  # [0.06, 0.1, 0.2],
-                  'n_estimators': [845],
+    all_params = {'max_depth': [12],
+                  'learning_rate': [0.02],  # [0.06, 0.1, 0.2],
+                  'n_estimators': [10000],
                   'min_child_weight': [7],
                   'colsample_bytree': [0.7],
-                  'boosting_type': ['gbdt'],
-                  'num_leaves': [1300],
+                  'boosting_type': ['gbdt', 'dart'],
+                  #'num_leaves': [1300],
                   'subsample': [0.8],
                   'min_child_samples': [100],
                   'reg_alpha': [1],
                   'reg_lambda': [0],
-                  'max_bin': [500],
+                  'max_bin': [500, 1000],
                   'min_split_gain': [0],
                   #'is_unbalance': [True, False],
                   #'subsample_freq': [1, 3],
@@ -392,10 +391,9 @@ if __name__ == '__main__':
     min_params = None
     cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=871)
     use_score = 0
-    cnt = 0
 
     for params in ParameterGrid(all_params):
-
+        cnt = 0
         list_score = []
         list_score2 = []
         list_best_iter = []
@@ -404,17 +402,17 @@ if __name__ == '__main__':
             trn_x = x_train[train]
             val_x = x_train[test]
 
-            #trn_xr = x_train_rev[train]
-            #val_xr = x_train_rev[test]
+            # trn_xr = x_train_rev[train]
+            # val_xr = x_train_rev[test]
 
             trn_y = y_train[train]
             val_y = y_train[test]
             trn_w = sample_weight[train]
             val_w = sample_weight[test]
 
-            #trn_x = np.r_[trn_x, trn_xr]
-            #trn_y = np.r_[trn_y, trn_y]
-            #trn_w = np.r_[trn_w, trn_w]
+            # trn_x = np.r_[trn_x, trn_xr]
+            # trn_y = np.r_[trn_y, trn_y]
+            # trn_w = np.r_[trn_w, trn_w]
 
             trn_ym = y_train_mod[train]
             val_ym = y_train_mod[test]
@@ -455,8 +453,10 @@ if __name__ == '__main__':
             else:
                 list_best_iter.append(params['n_estimators'])
             # break
-        with open('tfidf_all_pred7.pkl', 'wb') as f:
+        with open('tfidf_all_pred2_5.pkl', 'wb') as f:
             pickle.dump(all_pred, f, -1)
+
+        exit()
 
         logger.info('trees: {}'.format(list_best_iter))
         params['n_estimators'] = np.mean(list_best_iter, dtype=int)
@@ -479,9 +479,9 @@ if __name__ == '__main__':
     # for params in ParameterGrid(all_params):
     #    min_params = params
 
-    #x_train = np.r_[x_train, x_train_rev]
-    #y_train = np.r_[y_train, y_train]
-    #sample_weight = np.r_[sample_weight, sample_weight]
+    # x_train = np.r_[x_train, x_train_rev]
+    # y_train = np.r_[y_train, y_train]
+    # sample_weight = np.r_[sample_weight, sample_weight]
 
     clf = LGBMClassifier(**min_params)
     clf.fit(x_train, y_train, sample_weight=sample_weight)
@@ -489,7 +489,7 @@ if __name__ == '__main__':
         pickle.dump(clf, f, -1)
     del x_train
     gc.collect()
-    """
+
     with open('model.pkl', 'rb') as f:
         clf = pickle.load(f)
     imp = pd.DataFrame(clf.feature_importances_, columns=['imp'])
