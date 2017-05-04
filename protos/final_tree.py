@@ -26,7 +26,10 @@ logger.addHandler(handler)
 
 aaa = pandas.read_csv('clique_data.csv')
 sample_weight = calc_weight(aaa['label'].values)
-use_cols = ['cnum', 'pred', 'new', 'vmax', 'vmin', 'vavg']
+# , 'emax', 'emin']  # ,  # 'l_score', 'r_score', 'm_score']  #
+use_cols = ['cnum', 'pred', 'new', 'vmax', 'vmin', 'vavg']  # , 'emax', 'emin']
+
+#'l_num', 'r_num', 'm_num']
 
 x_train = aaa[use_cols].values
 y_train = aaa['label'].values
@@ -35,26 +38,27 @@ y_train = aaa['label'].values
 all_params = {'max_depth': [14],
               'learning_rate': [0.02],  # [0.06, 0.1, 0.2],
               'n_estimators': [10000],
-              'min_child_weight': [1, 3],
-              'colsample_bytree': [0.7, 0.9],
+              'min_child_weight': [1],
+              'colsample_bytree': [0.7],
               'boosting_type': ['gbdt'],
               #'num_leaves': [1300, 1500, 2000],
               'subsample': [0.99],
-              'min_child_samples': [5, 2, 3],
-              'reg_alpha': [0, 1],
-              'reg_lambda': [0, 1],
+              'min_child_samples': [5],
+              'reg_alpha': [0],
+              'reg_lambda': [0],
               'max_bin': [500],
-              'min_split_gain': [0.1, 0, 0.5],
+              'min_split_gain': [0.1],
               'silent': [True],
               'seed': [2261]
               }
-cv = StratifiedKFold(n_splits=10, shuffle=True, random_state=871)
+cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=871)
 min_score = (100, 100, 100)
 min_params = None
 
 use_score = 0
-
+logger.info('x size {}'.format(x_train.shape))
 for params in tqdm(list(ParameterGrid(all_params))):
+
     cnt = 0
     list_score = []
     list_score2 = []

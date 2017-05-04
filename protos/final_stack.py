@@ -21,14 +21,13 @@ from logging import getLogger
 logger = getLogger(__name__)
 from tqdm import tqdm
 from features_tmp import FEATURE
-from features_tmp1 import FEATURE as FEATURE2
 
 CHUNK_SIZE = 100000
 
 
 def train_data():
     logger.info('start')
-
+    """
     x = pd.read_csv('kernel_train3.csv').values.astype(np.float32)
     x_train = pd.read_csv('count_tfidf_train.csv').values.astype(np.float32)
     x_train = np.c_[x_train, x]
@@ -143,17 +142,24 @@ def train_data():
     x = pd.read_csv('train_cnum.csv', header=None).values
     x_train = np.c_[x_train, x]
     logger.info('{}'.format(x_train.shape))
-
+    """
     with open('tfidf_all_pred2_2.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x_train = x  # np.c_[x_train, x]
+    logger.info('{}'.format(x_train.shape))
+
+    #x_train = x_train[:, FEATURE]
+    x = pd.read_csv('clique_data.csv')[['cnum', 'pred', 'new', 'vmax',
+                                        'vmin', 'vavg']].values
+    x_train = np.c_[x_train, x]
+    logger.info('{}'.format(x_train.shape))
+    """
+    with open('train_magic.pkl', 'rb') as f:
         x = pickle.load(f).astype(np.float32)
     x_train = np.c_[x_train, x]
     logger.info('{}'.format(x_train.shape))
+    """
 
-    #
-    # x = pd.read_csv('clique_data.csv')[['cnum', 'pred', 'new', 'vmax',
-    #                                    'vmin', 'vavg']].values
-    # x_train = np.c_[x_train, x]
-    # logger.info('{}'.format(x_train.shape))
     """
     with open('tfidf_all_pred_final_0502.pkl', 'rb') as f:
         x = pickle.load(f).astype(np.float32)
@@ -162,13 +168,6 @@ def train_data():
     """
     x_train[np.isnan(x_train)] = -100
     x_train[np.isinf(x_train)] = -100
-    """
-    x_train = x_train[:, FEATURE]
-    with open('train_magic.pkl', 'rb') as f:
-        x = pickle.load(f).astype(np.float32)
-    x_train = np.c_[x_train, x]
-    logger.info('{}'.format(x_train.shape))
-    """
     return x_train
 
 import dask.array as da
@@ -176,7 +175,7 @@ import dask.array as da
 
 def test_data():
     logger.info('start')
-
+    """
     x = pd.read_csv('kernel_test3.csv').values.astype(np.float32)
     x_test = pd.read_csv('count_tfidf_test.csv').values.astype(np.float32)
     x_test = da.from_array(x_test, chunks=CHUNK_SIZE)
@@ -324,19 +323,20 @@ def test_data():
     x = da.from_array(x, chunks=CHUNK_SIZE)
     x_test = da.concatenate([x_test, x], axis=1)
     """
-    with open('model_first_0502.pkl', 'rb') as f:
+    """
+    with open('model_first2.pkl', 'rb') as f:
         clf = pickle.load(f)
 
     preds = []
     for i in range(int(x_test.shape[0] / CHUNK_SIZE) + 1):
         logger.debug('chunk %s' % i)
-        d = x_test[i * CHUNK_SIZE: (i + 1) * CHUNK_SIZE, FEATURE2].compute()
+        d = x_test[i * CHUNK_SIZE: (i + 1) * CHUNK_SIZE].compute()
         p_test = clf.predict_proba(d, num_iteration=6459)
         preds.append(p_test)
         del d
         gc.collect()
     preds = np.concatenate(preds)[:, 1]
-    with open('test_preds2_0502.pkl', 'wb') as f:
+    with open('test_preds2_2.pkl', 'wb') as f:
         pickle.dump(preds, f, -1)
     """
     with open('test_preds2_2.pkl', 'rb') as f:
@@ -344,12 +344,19 @@ def test_data():
 
     x = preds.reshape((-1, 1))
     x = da.from_array(x, chunks=CHUNK_SIZE)
-    x_test = da.concatenate([x_test, x], axis=1)
+    x_test = x  # da.concatenate([x_test, x], axis=1)
 
-    # x = pd.read_csv('clique_data_test.csv')[['cnum', 'pred', 'new', 'vmax',
-    #                                         'vmin', 'vavg']].values
-    # x = da.from_array(x, chunks=CHUNK_SIZE)
-    # x_test = da.concatenate([x_test, x], axis=1)
+    x = pd.read_csv('clique_data_test.csv')[['cnum', 'pred', 'new', 'vmax',
+                                             'vmin', 'vavg']].values
+    x = da.from_array(x, chunks=CHUNK_SIZE)
+    x_test = da.concatenate([x_test, x], axis=1)
+    """
+    with open('test_magic.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+
+    x = da.from_array(x, chunks=CHUNK_SIZE)
+    x_test = da.concatenate([x_test, x], axis=1)
+    """
     """
     with open('model_ft.pkl', 'rb') as f:
         clf = pickle.load(f)
@@ -367,15 +374,8 @@ def test_data():
     x = da.from_array(x, chunks=CHUNK_SIZE)
     x_test = da.concatenate([x_test, x], axis=1)
     """
-    """
-    x_test = x_test[:, FEATURE]
+    #x_test = x_test[:, FEATURE]
 
-    with open('test_magic.pkl', 'rb') as f:
-        x = pickle.load(f).astype(np.float32)
-
-    x = da.from_array(x, chunks=CHUNK_SIZE)
-    x_test = da.concatenate([x_test, x], axis=1)
-    """
     return x_test
 
 
@@ -442,7 +442,7 @@ if __name__ == '__main__':
 
     all_params = {'max_depth': [10],
                   'learning_rate': [0.01],  # [0.06, 0.1, 0.2],
-                  'n_estimators': [922],
+                  'n_estimators': [10000],
                   'min_child_weight': [7],
                   'colsample_bytree': [0.7],
                   'boosting_type': ['gbdt'],
@@ -457,8 +457,26 @@ if __name__ == '__main__':
                   #'subsample_freq': [1, 3],
                   #'drop_rate': [0.1],
                   #'skip_drop': [0.5],
-                  'seed': [7439]
+                  'seed': [2261]
                   }
+
+    all_params = {'max_depth': [14],
+                  'learning_rate': [0.02],  # [0.06, 0.1, 0.2],
+                  'n_estimators': [10000],
+                  'min_child_weight': [1],
+                  'colsample_bytree': [0.7],
+                  'boosting_type': ['gbdt'],
+                  #'num_leaves': [1300, 1500, 2000],
+                  'subsample': [0.99],
+                  'min_child_samples': [5],
+                  'reg_alpha': [0],
+                  'reg_lambda': [0],
+                  'max_bin': [500],
+                  'min_split_gain': [0.1],
+                  'silent': [True],
+                  'seed': [2261]
+                  }
+
     min_score = (100, 100, 100)
     min_params = None
     cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=871)
@@ -526,7 +544,7 @@ if __name__ == '__main__':
             else:
                 list_best_iter.append(params['n_estimators'])
             break
-        # with open('tfidf_all_pred2_7.pkl', 'wb') as f:
+        # with open('tfidf_all_pred_final_0502.pkl', 'wb') as f:
         #    pickle.dump(all_pred, f, -1)
 
         logger.info('trees: {}'.format(list_best_iter))
