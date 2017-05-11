@@ -26,10 +26,14 @@ from features_tmp1 import FEATURE as FEATURE2
 CHUNK_SIZE = 100000
 GRAPH = ['cnum',
          'pred',
-         #'new',
-         #'vmax',
-         #'vmin',
-         #'vavg',
+         'new',
+         'vmax',
+         'vmin',
+         'vavg',
+         'appnum',
+         'emax',
+         'emin',
+         'l_score', 'r_score', 'm_score',
          'l_num', 'r_num', 'm_num']
 
 
@@ -181,7 +185,7 @@ def train_data():
     x_train[np.isnan(x_train)] = -100
     x_train[np.isinf(x_train)] = -100
 
-    x_train = x_train[:, FEATURE]
+    #x_train = x_train[:, FEATURE]
     """
     with open('tfidf_all_pred3_0509.pkl', 'rb') as f:
         x = pickle.load(f).astype(np.float32)
@@ -360,7 +364,7 @@ def test_data():
     x = da.from_array(x, chunks=CHUNK_SIZE)
     x_test = da.concatenate([x_test, x], axis=1)
 
-    x_test = x_test[:, FEATURE]
+    #x_test = x_test[:, FEATURE]
     """
     with open('test_preds4_0509.pkl', 'rb') as f:
         preds = pickle.load(f).astype(np.float32)
@@ -404,7 +408,7 @@ if __name__ == '__main__':
     logger.info('load start')
     df_train = pd.read_csv('../data/train.csv', usecols=['is_duplicate'])
     df_test = pd.read_csv('../data/test.csv', usecols=['test_id'])
-    """
+
     ################
     # x_train_rev = train_data_rev()
     x_train = train_data()
@@ -513,9 +517,9 @@ if __name__ == '__main__':
                 list_best_iter.append(clf.best_iteration)
             else:
                 list_best_iter.append(params['n_estimators'])
-            # break
-        with open('tfidf_all_pred3_0509.pkl', 'wb') as f:
-            pickle.dump(all_pred, f, -1)
+            break
+        # with open('tfidf_all_pred3_0509.pkl', 'wb') as f:
+        #    pickle.dump(all_pred, f, -1)
 
         logger.info('trees: {}'.format(list_best_iter))
         params['n_estimators'] = np.mean(list_best_iter, dtype=int)
@@ -548,7 +552,7 @@ if __name__ == '__main__':
         pickle.dump(clf, f, -1)
     del x_train
     gc.collect()
-    """
+
     with open('model.pkl', 'rb') as f:
         clf = pickle.load(f)
     imp = pd.DataFrame(clf.feature_importances_, columns=['imp'])
@@ -573,8 +577,8 @@ if __name__ == '__main__':
         p_test = clf.predict_proba(d)
         preds.append(p_test)
     p_test = np.concatenate(preds)[:, 1]
-    with open('test_preds4_0509.pkl', 'wb') as f:
-        pickle.dump(p_test, f, -1)
+    # with open('test_preds4_0509.pkl', 'wb') as f:
+    #    pickle.dump(p_test, f, -1)
 
     sub = pd.DataFrame()
     sub['test_id'] = df_test['test_id']

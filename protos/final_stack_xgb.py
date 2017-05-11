@@ -19,15 +19,116 @@ from sklearn.metrics import log_loss, roc_auc_score
 import gc
 from logging import getLogger
 logger = getLogger(__name__)
-
+from tqdm import tqdm
 from features_tmp import FEATURE
-from tfidf_k import train_data, test_data, CHUNK_SIZE
+
+CHUNK_SIZE = 100000
+
+GRAPH = ['cnum', 'pred', 'new', 'vmax',
+         'vmin', 'vavg']  # , 'l_num', 'r_num', 'm_num']
+
+
+def train_data():
+    logger.info('start')
+
+    with open('tfidf_all_pred2_2.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x_train = x  # np.c_[x_train, x]
+    logger.info('{}'.format(x_train.shape))
+
+    #x_train = x_train[:, FEATURE]
+    x = pd.read_csv('clique_data.csv')[GRAPH].fillna(-100).values
+    x_train = np.c_[x_train, x]
+    logger.info('{}'.format(x_train.shape))
+
+    #x = pd.read_csv('clique_data2.csv')[GRAPH].values
+    #x_train = np.c_[x_train, x]
+    # logger.info('{}'.format(x_train.shape))
+    """
+    with open('train_magic.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x_train = np.c_[x_train, x]
+    logger.info('{}'.format(x_train.shape))
+    """
+
+    """
+    with open('tfidf_all_pred_final_0502.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x_train = np.c_[x_train, x]
+    logger.info('{}'.format(x_train.shape))
+    """
+    x_train[np.isnan(x_train)] = -100
+    x_train[np.isinf(x_train)] = -100
+    return x_train
+
+import dask.array as da
+
+
+def test_data():
+    logger.info('start')
+    with open('test_preds2_2.pkl', 'rb') as f:
+        preds = pickle.load(f).astype(np.float32)
+
+    x = preds.reshape((-1, 1))
+    x = da.from_array(x, chunks=CHUNK_SIZE)
+    x_test = x  # da.concatenate([x_test, x], axis=1)
+
+    x = pd.read_csv('clique_data_test.csv')[GRAPH].fillna(-100).values
+    x = da.from_array(x, chunks=CHUNK_SIZE)
+    x_test = da.concatenate([x_test, x], axis=1)
+
+    #x = pd.read_csv('clique_data_test2.csv')[GRAPH].values
+    #x = da.from_array(x, chunks=CHUNK_SIZE)
+    #x_test = da.concatenate([x_test, x], axis=1)
+
+    """
+    with open('test_magic.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+
+    x = da.from_array(x, chunks=CHUNK_SIZE)
+    x_test = da.concatenate([x_test, x], axis=1)
+    """
+    """
+    with open('model_ft.pkl', 'rb') as f:
+        clf = pickle.load(f)
+
+    preds = []
+    for i in range(int(x_test.shape[0] / CHUNK_SIZE) + 1):
+        logger.debug('chunk %s' % i)
+        d = x_test[i * CHUNK_SIZE: (i + 1) * CHUNK_SIZE].compute()
+        p_test = clf.predict_proba(d, num_iteration=6459)
+        preds.append(p_test)
+        del d
+        gc.collect()
+    preds = np.concatenate(preds)[:, 1]
+    x = preds.reshape((-1, 1))
+    x = da.from_array(x, chunks=CHUNK_SIZE)
+    x_test = da.concatenate([x_test, x], axis=1)
+    """
+    #x_test = x_test[:, FEATURE]
+
+    return x_test
+
+
+def calc_weight(y_train, pos_rate=0.165):
+
+    neg_rate = 1 - pos_rate
+    pos_num = y_train.sum()
+    neg_num = y_train.shape[0] - y_train.sum()
+
+    logger.info('pos_rate: %s, target pos_rate: %s, pos_num: %s' % (pos_num / y_train.shape[0], pos_rate, pos_num))
+
+    w = (neg_num * pos_rate) / (pos_num * (1 - pos_rate))
+    sample_weight = np.where(y_train == 1, w, 1)
+    calc_pos_rate = (w * pos_num) / (w * pos_num + neg_num)
+    logger.info('calc pos_rate: %s' % calc_pos_rate)
+    return sample_weight
 
 if __name__ == '__main__':
     from logging import StreamHandler, DEBUG, Formatter, FileHandler
 
     log_fmt = Formatter('%(asctime)s %(name)s %(lineno)d [%(levelname)s][%(funcName)s] %(message)s ')
-    handler = FileHandler('tfidf_xgb.py.log', 'w')
+    handler = FileHandler('tfidf_k.py.log', 'w')
     handler.setLevel(DEBUG)
     handler.setFormatter(log_fmt)
     logger.setLevel(DEBUG)
@@ -40,30 +141,35 @@ if __name__ == '__main__':
     logger.addHandler(handler)
 
     logger.info('load start')
-    df_train = pd.read_csv('../data/train.csv')
-    df_test = pd.read_csv('../data/test.csv')
+    df_train = pd.read_csv('../data/train.csv', usecols=['is_duplicate'])
+    df_test = pd.read_csv('../data/test.csv', usecols=['test_id'])
 
     ################
+    # x_train_rev = train_data_rev()
     x_train = train_data()
-
+    logger.info('x_shape: {}'.format(x_train.shape))
     #####################
 
     y_train = df_train['is_duplicate'].values
+    with open('tfidf_all_pred2_2.pkl', 'rb') as f:
+        cross_pred = pickle.load(f).astype(np.float32)
+    y_train_mod = y_train.copy()
+    # y_train_mod[cross_pred > 0.99] = 1
+
+    sample_weight = calc_weight(y_train)
+    sample_weight_mod = calc_weight(y_train_mod)
+
     del df_train
     gc.collect()
 
-    logger.info('x_shape: {}'.format(x_train.shape))
-    pos_rate = 0.165
-    pos_num = y_train.sum()
-    neg_num = y_train.shape[0] - y_train.sum()
-    logger.info('pos_rate: %s, target pos_rate: %s, pos_num: %s' % (pos_num / y_train.shape[0], pos_rate, pos_num))
-
-    w = (neg_num * pos_rate) / (pos_num * (1 - pos_rate))
-    sample_weight = np.where(y_train == 1, w, 1)
-    calc_pos_rate = (w * pos_num) / (w * pos_num + neg_num)
-    logger.info('calc pos_rate: %s' % calc_pos_rate)
+    # calc_pos_rate = (pos_num) / (pos_num + w * neg_num)
+    # logger.info('calc pos_rate: %s' % calc_pos_rate)
 
     logger.info('sampling start')
+
+    from sklearn.cross_validation import train_test_split
+
+    # x_train, x_valid, y_train, y_valid = train_test_split(x_train, y_train, test_size=0.2, random_state=4242)
 
     all_params = {'max_depth': [5],
                   'n_estimators': [10000],
@@ -75,9 +181,9 @@ if __name__ == '__main__':
                   'eta': [0.06],
                   #'normalize_type': ['forest'],
                   #'sample_type': ['weighted'],
-                  'rate_drop': [0.1],
-                  'skip_drop': [0.5],
-                  'silent': [False],
+                  #'rate_drop': [0.1],
+                  #'skip_drop': [0.5],
+                  'silent': [True],
                   'eval_metric': ['logloss'],
                   'objective': ['binary:logistic']
                   }
@@ -86,7 +192,6 @@ if __name__ == '__main__':
     min_params = None
     cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=871)
     use_score = 0
-
     for params in ParameterGrid(all_params):
         list_score = []
         list_score2 = []
@@ -109,8 +214,8 @@ if __name__ == '__main__':
                             d_train,
                             params['n_estimators'],
                             watchlist,
-                            early_stopping_rounds=100,
-                            verbose_eval=1)
+                            early_stopping_rounds=100)
+            # verbose_eval=0)
 
             pred = clf.predict(d_valid)
             # with open('tfidf_val.pkl', 'wb') as f:
@@ -149,8 +254,8 @@ if __name__ == '__main__':
     #    min_params = params
     clf = xgb.train(min_params,
                     d_train,
-                    min_params['n_estimators'],
-                    verbose_eval=1)
+                    min_params['n_estimators'])
+    # verbose_eval=0)
 
     with open('model_xgb.pkl', 'wb') as f:
         pickle.dump(clf, f, -1)

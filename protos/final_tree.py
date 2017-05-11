@@ -28,6 +28,7 @@ aaa = pandas.read_csv('clique_data.csv')
 sample_weight = calc_weight(aaa['label'].values)
 # , 'emax', 'emin']  # ,  # 'l_score', 'r_score', 'm_score']  #
 use_cols = ['cnum', 'pred', 'new', 'vmax', 'vmin', 'vavg']  # , 'emax', 'emin']
+use_cols = ['cnum', 'pred', 'vmax', 'vmin', 'vavg']  # , 'emax', 'emin']
 
 #'l_num', 'r_num', 'm_num']
 
@@ -35,13 +36,13 @@ x_train = aaa[use_cols].values
 y_train = aaa['label'].values
 
 
-all_params = {'max_depth': [14],
+all_params = {'max_depth': [5],  # [14],
               'learning_rate': [0.02],  # [0.06, 0.1, 0.2],
               'n_estimators': [10000],
               'min_child_weight': [1],
               'colsample_bytree': [0.7],
               'boosting_type': ['gbdt'],
-              #'num_leaves': [1300, 1500, 2000],
+              #'num_leaves': [32, 100, 200],  # [1300, 1500, 2000],
               'subsample': [0.99],
               'min_child_samples': [5],
               'reg_alpha': [0],
