@@ -10,7 +10,8 @@ with open('final_tree.pkl', 'rb') as f:
     final_tree = pickle.load(f)
 use_cols = ['cnum', 'pred', 'vmax', 'vmin', 'vavg']  # , 'emax', 'emin']#, 'l_num', 'r_num', 'm_num']
 all_cols = ['cnum', 'pred', 'new', 'vmax', 'vmin', 'vavg', 'appnum', 'emax',
-            'emin', 'l_score', 'r_score', 'm_score', 'l_num', 'r_num', 'm_num']
+            'emin', 'l_score', 'r_score', 'm_score', 'l_num', 'r_num', 'm_num',
+            'l_min', 'l_max', 'r_min', 'r_max']
 
 df = pandas.read_csv('../data/test.csv')
 submit = pandas.read_csv('model0506/submit.csv')
@@ -62,10 +63,10 @@ for cli in tqdm(cliques):
         continue
     keys = {}
     for q1, q2 in combinations(cli, 2):
-        if (q1, q2) in map_result:
-            keys[q1, q2] = map_result[q1, q2]
-        elif (q2, q1) in map_result:
-            keys[q2, q1] = map_result[q2, q1]
+        if (q1, q2) in map_score:
+            keys[q1, q2] = map_score[q1, q2]
+        elif (q2, q1) in map_score:
+            keys[q2, q1] = map_score[q2, q1]
         # elif (q1, q2) in map_score2:
         #    keys[q1, q2] = map_score2[q1, q2]
         # elif (q2, q1) in map_score2:
@@ -127,21 +128,28 @@ for qid, q1, q2 in tqdm(df[['test_id', 'question1', 'question2']].values):
     r_num = len(G[key[1]])
     m_num = (l_num + r_num) / 2
 
-    l_score = numpy.mean([map_result[key[0], to] if (key[0], to)
-                          in map_result else map_result[to, key[0]] for to in G[key[0]]])
-    r_score = numpy.mean([map_result[to, key[1]] if (to, key[1])
-                          in map_result else map_result[key[1], to] for to in G[key[1]]])
+    l_scores = [map_result[key[0], to] if (key[0], to)
+                in map_result else map_result[to, key[0]] for to in G[key[0]]]
+    r_scores = [map_result[to, key[1]] if (to, key[1])
+                in map_result else map_result[key[1], to] for to in G[key[1]]]
+    l_score = numpy.mean(l_scores)
+    r_score = numpy.mean(r_scores)
     m_score = (l_score + r_score) / 2
+
+    l_min = numpy.min(l_scores)
+    l_max = numpy.max(l_scores)
+    r_min = numpy.min(r_scores)
+    r_max = numpy.max(r_scores)
 
     emin = map_min.get(key, new_pred)
     emax = map_max.get(key, new_pred)
 
     #'cnum', 'pred', 'new', 'vmax','vmin', 'vavg'
     list_data.append([cnum, pred, new_pred] + data + [appnum, emax, emin,
-                                                      l_score, r_score, m_score, l_num, r_num, m_num])
-
+                                                      l_score, r_score, m_score, l_num, r_num, m_num,
+                                                      l_min, l_max, r_min, r_max])
 list_data = pandas.DataFrame(list_data, columns=all_cols)
-list_data.to_csv('clique_data_test.csv', index=False)
+list_data.to_csv('clique_data_test_0506.csv', index=False)
 data = list_data[use_cols].values
 if data.shape[1] != final_tree.feature_importances_.shape[0]:
     raise Exception('Not match feature num: %s %s' % (data.shape[1], final_tree.feature_importances_.shape[0]))

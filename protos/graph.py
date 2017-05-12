@@ -7,6 +7,11 @@ from scipy.stats import skew, kurtosis
 
 df = pandas.read_csv('../data/train.csv')
 
+# with open('tfidf_all_pred_final_0509.pkl', 'rb') as f:
+#    x = pickle.load(f).astype(numpy.float32)
+
+# with open('tfidf_all_pred3_0509.pkl', 'rb') as f:
+#    x = pickle.load(f).astype(numpy.float32)
 with open('tfidf_all_pred2_0506.pkl', 'rb') as f:
     x = pickle.load(f).astype(numpy.float32)
 df['pred'] = x
@@ -44,10 +49,10 @@ for cli in tqdm(cliques):
     #    continue
     keys = {}
     for q1, q2 in combinations(cli, 2):
-        if (q1, q2) in map_result:  # map_score:
-            keys[q1, q2] = map_result[q1, q2]
-        elif (q2, q1) in map_result:
-            keys[q2, q1] = map_result[q2, q1]
+        if (q1, q2) in map_score:  # map_score:
+            keys[q1, q2] = map_score[q1, q2]
+        elif (q2, q1) in map_score:
+            keys[q2, q1] = map_score[q2, q1]
 
     val_max = numpy.max(list(keys.values()))
     val_min = numpy.min(list(keys.values()))
@@ -81,7 +86,7 @@ for cli in tqdm(cliques):
 
 list_res = []
 use_cols = ['cnum', 'pred', 'new', 'vmax', 'vmin', 'vavg', 'appnum', 'emax', 'emin', 'l_score',
-            'r_score', 'm_score', 'l_num', 'r_num', 'm_num']  # , 'vmed', 'vstd', 'vskew', 'vkurt']
+            'r_score', 'm_score', 'l_num', 'r_num', 'm_num', 'l_min', 'l_max', 'r_min', 'r_max']  # 'vmed', 'vstd', 'vskew', 'vkurt']
 # for key, new in map_result.items():
 for q1, q2 in tqdm(df[['question1', 'question2']].values):
     key = (q1, q2)
@@ -105,14 +110,22 @@ for q1, q2 in tqdm(df[['question1', 'question2']].values):
     r_num = len(G[key[1]])
     m_num = (l_num + r_num) / 2
 
-    l_score = numpy.mean([map_result[key[0], to] if (key[0], to)
-                          in map_result else map_result[to, key[0]] for to in G[key[0]]])
-    r_score = numpy.mean([map_result[to, key[1]] if (to, key[1])
-                          in map_result else map_result[key[1], to] for to in G[key[1]]])
+    l_scores = [map_result[key[0], to] if (key[0], to)
+                in map_result else map_result[to, key[0]] for to in G[key[0]]]
+    r_scores = [map_result[to, key[1]] if (to, key[1])
+                in map_result else map_result[key[1], to] for to in G[key[1]]]
+    l_score = numpy.mean(l_scores)
+    r_score = numpy.mean(r_scores)
     m_score = (l_score + r_score) / 2
 
+    l_min = numpy.min(l_scores)
+    l_max = numpy.max(l_scores)
+    r_min = numpy.min(r_scores)
+    r_max = numpy.max(r_scores)
+
     list_res.append([label, cnum, pred, new_pred] + data + [app, emax,
-                                                            emin, l_score, r_score, m_score, l_num, r_num, m_num])
+                                                            emin, l_score, r_score, m_score, l_num, r_num, m_num,
+                                                            l_min, l_max, r_min, r_max])
 aaa = pandas.DataFrame(list_res, columns=['label'] + use_cols)
 
 from tfidf_k import calc_weight
@@ -123,4 +136,4 @@ print(log_loss(aaa['label'].values, aaa['pred'].values, sample_weight=sw))
 print(roc_auc_score(aaa['label'].values, aaa['new'].values, sample_weight=sw))
 print(log_loss(aaa['label'].values, aaa['new'].values, sample_weight=sw))
 
-aaa.to_csv('clique_data.csv', index=False)
+aaa.to_csv('clique_data_0506.csv', index=False)
