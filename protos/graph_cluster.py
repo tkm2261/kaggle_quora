@@ -3,6 +3,8 @@ from tqdm import tqdm
 import pickle
 import pandas
 import numpy
+import community
+
 from scipy.stats import skew, kurtosis
 
 df = pandas.read_csv('../data/train.csv')
@@ -14,7 +16,7 @@ df = pandas.read_csv('../data/train.csv')
 #    x = pickle.load(f).astype(numpy.float32)
 # with open('tfidf_all_pred2_0506.pkl', 'rb') as f:
 #    x = pickle.load(f).astype(numpy.float32)
-with open('tfidf_all_pred2_0514.pkl', 'rb') as f:
+with open('tfidf_all_pred2_0512.pkl', 'rb') as f:
     x = pickle.load(f).astype(numpy.float32)
 df['pred'] = x
 
@@ -31,9 +33,17 @@ G.add_weighted_edges_from(edges)
 map_score = dict(((x[0], x[1]), x[2]) for x in df[['question1', 'question2', 'pred']].values)
 map_dup = dict(((x[0], x[1]), x[2]) for x in df[['question1', 'question2', 'is_duplicate']].values)
 
-map_eign_cent = nx.eigenvector_centrality(G, weight=None)
 
-cliques = sorted(list(nx.find_cliques(G)), key=lambda x: (len(x), max(map(str, x))))
+cluster = {}
+#cl = community.best_partition(G)
+cl = nx.clustering(G)
+for node, c in cl.items():
+    c = int(c)
+    if c in cluster:
+        cluster[c].append(node)
+    else:
+        cluster[c] = [node]
+cliques = sorted(cluster.values(), key=lambda x: (len(x), max(map(str, x))))
 
 import copy
 from itertools import combinations
@@ -49,14 +59,16 @@ map_max = {}
 map_min = {}
 
 for cli in tqdm(cliques):
-    # if len(cli) < 3:
-    #    continue
+    if len(cli) < 2:
+        continue
     keys = {}
     for q1, q2 in combinations(cli, 2):
         if (q1, q2) in map_score:  # map_score:
             keys[q1, q2] = map_score[q1, q2]
         elif (q2, q1) in map_score:
             keys[q2, q1] = map_score[q2, q1]
+    if len(keys) == 0:
+        continue
 
     val_max = numpy.max(list(keys.values()))
     val_min = numpy.min(list(keys.values()))
@@ -111,11 +123,12 @@ for q1, q2 in tqdm(df[['question1', 'question2']].values):
         continue
     pred = map_score[key]
     cnum = map_cnum.get(key, -1)
-    data = list(map_data[key])
-    app = map_app[key]
+
+    data = list(map_data.get(key, [pred] * 3))
+    app = map_app.get(key, 0)
     new_pred = new
-    emin = map_min[key]
-    emax = map_max[key]
+    emin = map_min.get(key, pred)
+    emax = map_max.get(key, pred)
 
     l_num = len(G[key[0]])
     r_num = len(G[key[1]])
@@ -144,8 +157,8 @@ for q1, q2 in tqdm(df[['question1', 'question2']].values):
     l_cnum_avg = numpy.mean(l_cnums)
     r_cnum_avg = numpy.mean(r_cnums)
 
-    l_eign_cent = map_eign_cent[key[0]]
-    r_eign_cent = map_eign_cent[key[1]]
+    l_eign_cent = 0
+    r_eign_cent = 0
 
     """
     l_med = numpy.median(l_scores)
@@ -176,4 +189,4 @@ print(log_loss(aaa['label'].values, aaa['pred'].values, sample_weight=sw))
 print(roc_auc_score(aaa['label'].values, aaa['new'].values, sample_weight=sw))
 print(log_loss(aaa['label'].values, aaa['new'].values, sample_weight=sw))
 
-aaa.to_csv('clique_data_0514.csv', index=False)
+aaa.to_csv('cluster2_data_0512.csv', index=False)

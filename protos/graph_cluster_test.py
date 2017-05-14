@@ -3,6 +3,7 @@ from tqdm import tqdm
 import pickle
 import pandas
 import numpy
+import community
 
 from scipy.stats import skew, kurtosis
 
@@ -20,7 +21,7 @@ all_cols = ['cnum', 'pred', 'new', 'vmax', 'vmin', 'vavg', 'appnum', 'emax', 'em
             ]
 
 df = pandas.read_csv('../data/test.csv')
-submit = pandas.read_csv('submit_xgb.csv')
+submit = pandas.read_csv('submit.csv')
 df['pred'] = submit['is_duplicate'].values
 
 df2 = pandas.read_csv('../data/train.csv')
@@ -42,13 +43,22 @@ map_score.update(map_score2)
 edges = [(k[0], k[1], v) for k, v in map_score.items()]
 G.add_weighted_edges_from(edges)
 
-map_eign_cent = nx.eigenvector_centrality(G, weight=None)
-
 
 import copy
 cnt = 0
 numpy.random.seed(111)
-cliques = sorted(list(nx.find_cliques(G)), key=lambda x: (len(x), max(map(str, x))))
+
+cluster = {}
+cl = community.best_partition(G)
+#cl = nx.clustering(G)
+for node, c in cl.items():
+    c = int(c)
+    if c in cluster:
+        cluster[c].append(node)
+    else:
+        cluster[c] = [node]
+cliques = sorted(cluster.values(), key=lambda x: (len(x), max(map(str, x))))
+
 
 from collections import defaultdict
 
@@ -64,7 +74,7 @@ for cli in tqdm(cliques):
     # if len(cli) < 2:
     #    continue
     if len(cli) == 1:
-        q1 = cli[0]
+        q1 = list(cli)[0]
         print(q1)
         map_result[q1, q1] = 1.
         map_cnum[q1, q1] = 1
@@ -76,12 +86,6 @@ for cli in tqdm(cliques):
             keys[q1, q2] = map_score[q1, q2]
         elif (q2, q1) in map_score:
             keys[q2, q1] = map_score[q2, q1]
-        # elif (q1, q2) in map_score2:
-        #    keys[q1, q2] = map_score2[q1, q2]
-        # elif (q2, q1) in map_score2:
-        #    keys[q2, q1] = map_score2[q2, q1]
-        else:
-            raise Exception('no edge {}'.format((q1, q2)))
 
     lval = list(keys.values())
     val_max = numpy.max(lval)
@@ -122,17 +126,12 @@ for qid, q1, q2 in tqdm(df[['test_id', 'question1', 'question2']].values):
     key = (q1, q2)
     if q1 == q2:
         list_qid.append(qid)
-    #    #map_result[key] = 1.
-    #    #list_qid.append(qid)
-    new_pred = map_result[q1, q2]
-    # if key not in map_cnum:
-    #    map_cnum[q1, q2] = 0
-    #    map_data[q1, q2] = (new_pred, new_pred, new_pred)
-    list_val.append(map_result[q1, q2])
+    new_pred = map_score[q1, q2]
+
     cnum = map_cnum.get((q1, q2), 2)
     data = list(map_data.get((q1, q2), (new_pred, new_pred, new_pred)))
     pred = map_score[key]
-    appnum = map_app[key]
+    appnum = map_app.get(key, -100)
 
     l_num = len(G[key[0]])
     r_num = len(G[key[1]])
@@ -171,8 +170,8 @@ for qid, q1, q2 in tqdm(df[['test_id', 'question1', 'question2']].values):
     l_cnum_avg = numpy.mean(l_cnums)
     r_cnum_avg = numpy.mean(r_cnums)
 
-    l_eign_cent = map_eign_cent[key[0]]
-    r_eign_cent = map_eign_cent[key[1]]
+    l_eign_cent = 0
+    r_eign_cent = 0
 
     emin = map_min.get(key, new_pred)
     emax = map_max.get(key, new_pred)
@@ -189,17 +188,4 @@ for qid, q1, q2 in tqdm(df[['test_id', 'question1', 'question2']].values):
 
 
 list_data = pandas.DataFrame(list_data, columns=all_cols)
-list_data.to_csv('clique_data_test_0514.csv', index=False)
-data = list_data[use_cols].values
-if data.shape[1] != final_tree.feature_importances_.shape[0]:
-    raise Exception('Not match feature num: %s %s' % (data.shape[1], final_tree.feature_importances_.shape[0]))
-
-pred = final_tree.predict_proba(data)[:, 1]
-
-list_data['last'] = pred
-list_data['test_id'] = submit['test_id'].values
-
-submit = pandas.read_csv('submit.csv')
-submit['is_duplicate'] = pred  # list_val
-submit.loc[submit['test_id'].isin(list_qid), 'is_duplicate'] = 1.
-submit.to_csv('submit_clique.csv', index=False)
+list_data.to_csv('cluster_data_test_0512.csv', index=False)

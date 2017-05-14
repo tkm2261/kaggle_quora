@@ -65,18 +65,18 @@ if __name__ == '__main__':
 
     logger.info('sampling start')
 
-    all_params = {'max_depth': [5],
+    all_params = {'max_depth': [6],
                   'n_estimators': [10000],
-                  'min_child_weight': [0],
+                  'min_child_weight': [10],
                   'subsample': [0.9],
                   'colsample_bytree': [0.8],
                   'colsample_bylevel': [0.8],
-                  'booster': ['dart'],
+                  #'booster': ['dart'],
                   'eta': [0.06],
                   #'normalize_type': ['forest'],
                   #'sample_type': ['weighted'],
-                  'rate_drop': [0.1],
-                  'skip_drop': [0.5],
+                  #'rate_drop': [0.1],
+                  #'skip_drop': [0.5],
                   'silent': [False],
                   'eval_metric': ['logloss'],
                   'objective': ['binary:logistic']
@@ -91,7 +91,7 @@ if __name__ == '__main__':
         list_score = []
         list_score2 = []
         list_best_iter = []
-
+        all_pred = np.zeros(y_train.shape[0])
         for train, test in cv.split(x_train, y_train):
             trn_x = x_train[train]
             val_x = x_train[test]
@@ -113,6 +113,8 @@ if __name__ == '__main__':
                             verbose_eval=1)
 
             pred = clf.predict(d_valid)
+            all_pred[test] = pred
+
             # with open('tfidf_val.pkl', 'wb') as f:
             #    pickle.dump((pred, val_y, val_w), f, -1)
 
@@ -125,7 +127,10 @@ if __name__ == '__main__':
                 list_best_iter.append(clf.best_iteration)
             else:
                 list_best_iter.append(params['n_estimators'])
-            break
+            # break
+        with open('tfidf_all_pred2_0514.pkl', 'wb') as f:
+            pickle.dump(all_pred, f, -1)
+
         logger.info('trees: {}'.format(list_best_iter))
         params['n_estimators'] = np.mean(list_best_iter, dtype=int)
         score = (np.mean(list_score), np.min(list_score), np.max(list_score))
@@ -180,6 +185,8 @@ if __name__ == '__main__':
         p_test = clf.predict(d)
         preds.append(p_test)
     p_test = np.concatenate(preds)  # [:, 1]
+    with open('test_preds2_0514.pkl', 'wb') as f:
+        pickle.dump(p_test, f, -1)
 
     sub = pd.DataFrame()
     sub['test_id'] = df_test['test_id']

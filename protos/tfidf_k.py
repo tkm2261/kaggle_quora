@@ -20,17 +20,20 @@ import gc
 from logging import getLogger
 logger = getLogger(__name__)
 from tqdm import tqdm
-from features_tmp import FEATURE
-from features_tmp1 import FEATURE as FEATURE2
+from features_tmp2 import FEATURE
+#from features_tmp1 import FEATURE as FEATURE2
 
 CHUNK_SIZE = 100000
 GRAPH = ['cnum',
-         'pred',
+         #'pred',
          #'new',
          #'vmax',
          #'vmin',
          #'vavg',
-         'l_num', 'r_num', 'm_num']
+         'l_num', 'r_num', 'm_num',
+         'l_cnum_max', 'r_cnum_max', 'l_cnum_min', 'r_cnum_min', 'l_cnum_avg', 'r_cnum_avg',
+         'l_eign_cent', 'r_eign_cent'
+         ]
 
 
 def train_data():
@@ -151,43 +154,28 @@ def train_data():
     x_train = np.c_[x_train, x]
     logger.info('{}'.format(x_train.shape))
 
-    # with open('tfidf_all_pred2_2.pkl', 'rb') as f:
-    #    x = pickle.load(f).astype(np.float32)
-    #x_train = np.c_[x_train, x]
-    # logger.info('{}'.format(x_train.shape))
-
-    #
-    # x = pd.read_csv('clique_data.csv')[['cnum', 'pred', 'new', 'vmax',
-    #                                    'vmin', 'vavg']].values
-    # x_train = np.c_[x_train, x]
-    # logger.info('{}'.format(x_train.shape))
-
-    with open('tfidf_all_pred2_0509.pkl', 'rb') as f:
-        x = pickle.load(f).astype(np.float32)
-    x_train = np.c_[x_train, x]
-    logger.info('{}'.format(x_train.shape))
-
-    """
     with open('train_magic.pkl', 'rb') as f:
         x = pickle.load(f).astype(np.float32)
     x_train = np.c_[x_train, x]
     logger.info('{}'.format(x_train.shape))
-    """
 
-    x = pd.read_csv('clique_data.csv')[GRAPH].values
+    x = pd.read_csv('clique_data_0512.csv')[GRAPH].values
+    x_train = np.c_[x_train, x]
+    logger.info('{}'.format(x_train.shape))
+
+    x = pd.read_csv('loop2_data_0512.csv')['cnum'].values
     x_train = np.c_[x_train, x]
     logger.info('{}'.format(x_train.shape))
 
     x_train[np.isnan(x_train)] = -100
     x_train[np.isinf(x_train)] = -100
 
-    x_train = x_train[:, FEATURE]
-    """
-    with open('tfidf_all_pred3_0509.pkl', 'rb') as f:
+    with open('tfidf_all_pred_0512.pkl', 'rb') as f:
         x = pickle.load(f).astype(np.float32)
     x_train = np.c_[x_train, x]
     logger.info('{}'.format(x_train.shape))
-    """
+
+    #x_train = x_train[:, FEATURE]
     return x_train
 
 import dask.array as da
@@ -343,31 +331,29 @@ def test_data():
     x = da.from_array(x, chunks=CHUNK_SIZE)
     x_test = da.concatenate([x_test, x], axis=1)
 
-    with open('test_preds3_0509.pkl', 'rb') as f:
-        preds = pickle.load(f).astype(np.float32)
-    x = preds.reshape((-1, 1))
-    x = da.from_array(x, chunks=CHUNK_SIZE)
-    x_test = da.concatenate([x_test, x], axis=1)
-    """
     with open('test_magic.pkl', 'rb') as f:
         x = pickle.load(f).astype(np.float32)
         x = da.from_array(x, chunks=CHUNK_SIZE)
 
     x_test = da.concatenate([x_test, x], axis=1)
     logger.info('{}'.format(x_test.shape))
-    """
-    x = pd.read_csv('clique_data_test.csv')[GRAPH].values
+
+    x = pd.read_csv('clique_data_test_0512.csv')[GRAPH].values
     x = da.from_array(x, chunks=CHUNK_SIZE)
     x_test = da.concatenate([x_test, x], axis=1)
 
-    x_test = x_test[:, FEATURE]
-    """
-    with open('test_preds4_0509.pkl', 'rb') as f:
+    x = pd.read_csv('loop2_data_test_0512.csv')['cnum'].values
+    x = x.reshape((-1, 1))
+    x = da.from_array(x, chunks=CHUNK_SIZE)
+    x_test = da.concatenate([x_test, x], axis=1)
+
+    with open('test_preds_0512.pkl', 'rb') as f:
         preds = pickle.load(f).astype(np.float32)
     x = preds.reshape((-1, 1))
     x = da.from_array(x, chunks=CHUNK_SIZE)
     x_test = da.concatenate([x_test, x], axis=1)
-    """
+
+    #x_test = x_test[:, FEATURE]
     return x_test
 
 
@@ -389,7 +375,7 @@ if __name__ == '__main__':
     from logging import StreamHandler, DEBUG, Formatter, FileHandler
 
     log_fmt = Formatter('%(asctime)s %(name)s %(lineno)d [%(levelname)s][%(funcName)s] %(message)s ')
-    handler = FileHandler('tfidf_k.py.log', 'w')
+    handler = FileHandler('tfidf_k.py.log', 'a')
     handler.setLevel(DEBUG)
     handler.setFormatter(log_fmt)
     logger.setLevel(DEBUG)
@@ -404,7 +390,7 @@ if __name__ == '__main__':
     logger.info('load start')
     df_train = pd.read_csv('../data/train.csv', usecols=['is_duplicate'])
     df_test = pd.read_csv('../data/test.csv', usecols=['test_id'])
-    """
+
     ################
     # x_train_rev = train_data_rev()
     x_train = train_data()
@@ -431,17 +417,17 @@ if __name__ == '__main__':
     from sklearn.cross_validation import train_test_split
 
     # x_train, x_valid, y_train, y_valid = train_test_split(x_train, y_train, test_size=0.2, random_state=4242)
-    all_params = {'max_depth': [10],
+    all_params = {'max_depth': [5],
                   'learning_rate': [0.01],  # [0.06, 0.1, 0.2],
                   'n_estimators': [10000],
                   'min_child_weight': [10],
                   'colsample_bytree': [0.7],
                   'boosting_type': ['gbdt'],
-                  'num_leaves': [1300],
+                  'num_leaves': [20],
                   'subsample': [0.9],
                   'min_child_samples': [100],
                   'reg_alpha': [1],
-                  'reg_lambda': [0],
+                  'reg_lambda': [1],
                   'max_bin': [500],
                   'min_split_gain': [0.1],
                   #'is_unbalance': [True, False],
@@ -514,7 +500,7 @@ if __name__ == '__main__':
             else:
                 list_best_iter.append(params['n_estimators'])
             # break
-        with open('tfidf_all_pred3_0509.pkl', 'wb') as f:
+        with open('tfidf_all_pred2_0512.pkl', 'wb') as f:
             pickle.dump(all_pred, f, -1)
 
         logger.info('trees: {}'.format(list_best_iter))
@@ -548,7 +534,7 @@ if __name__ == '__main__':
         pickle.dump(clf, f, -1)
     del x_train
     gc.collect()
-    """
+
     with open('model.pkl', 'rb') as f:
         clf = pickle.load(f)
     imp = pd.DataFrame(clf.feature_importances_, columns=['imp'])
@@ -573,7 +559,7 @@ if __name__ == '__main__':
         p_test = clf.predict_proba(d)
         preds.append(p_test)
     p_test = np.concatenate(preds)[:, 1]
-    with open('test_preds4_0509.pkl', 'wb') as f:
+    with open('test_preds2_0512.pkl', 'wb') as f:
         pickle.dump(p_test, f, -1)
 
     sub = pd.DataFrame()
