@@ -23,45 +23,57 @@ from tqdm import tqdm
 from features_stack import FEATURE
 
 CHUNK_SIZE = 100000
-
-GRAPH = ['cnum', 'pred',
-         # 'new',
-         'vmax', 'vmin', 'vavg', 'appnum', 'emax', 'emin', 'l_score',
-         'r_score', 'm_score', 'l_num', 'r_num', 'm_num', 'l_min', 'l_max', 'r_min', 'r_max',
+GRAPH = ['cnum',
+         'pred',
+         #'new',
+         'vmax',
+         'vmin',
+         'vavg',
+         'appnum',
+         'emax',
+         'emin',
+         'l_score', 'r_score', 'm_score',
+         'l_num', 'r_num', 'm_num',
+         'l_min', 'l_max', 'r_min', 'r_max',
          'l_cnum_max', 'r_cnum_max', 'l_cnum_min', 'r_cnum_min', 'l_cnum_avg', 'r_cnum_avg',
          'l_eign_cent', 'r_eign_cent',
-         'n_med', 'med_min', 'med_max', 'med_avg'
+         #'n_med', 'med_min', 'med_max', 'med_avg',
+         #'med_l_min', 'med_l_max', 'med_l_avg',
+         #'med_r_min', 'med_r_max', 'med_r_avg'
 
          ]
-GRAPH2 = ['cnum', 'pred',
-          # 'new',
-          'vmax', 'vmin', 'vavg', 'appnum', 'emax', 'emin', 'l_score',
-          'r_score', 'm_score', 'l_num', 'r_num', 'm_num', 'l_min', 'l_max', 'r_min', 'r_max',
-          'l_cnum_max', 'r_cnum_max', 'l_cnum_min', 'r_cnum_min', 'l_cnum_avg', 'r_cnum_avg',
-          'l_eign_cent', 'r_eign_cent',
-          'n_med', 'med_min', 'med_max', 'med_avg',
-          'med_l_min', 'med_l_max', 'med_l_avg',
-          'med_r_min', 'med_r_max', 'med_r_avg'
 
+GRAPH0 = ['cnum',
+          'pred',
+          #'new',
+          'vmax',
+          'vmin',
+          'vavg',
+          'appnum',
+          'emax',
+          'emin',
+          'l_score', 'r_score', 'm_score',
+          'l_num', 'r_num', 'm_num',
+          'l_min', 'l_max', 'r_min', 'r_max',
           ]
-GRAPH0 = ['cnum', 'pred',
-          # 'new',
-          'vmax', 'vmin', 'vavg', 'appnum', 'emax', 'emin', 'l_score',
-          'r_score', 'm_score', 'l_num', 'r_num', 'm_num', 'l_min', 'l_max', 'r_min', 'r_max',
-          'l_cnum_max', 'r_cnum_max', 'l_cnum_min', 'r_cnum_min', 'l_cnum_avg', 'r_cnum_avg',
-          'l_eign_cent', 'r_eign_cent'
-          ]
-GRAPH1 = ['cnum', 'pred',
-          # 'new',
-          'vmax', 'vmin', 'vavg', 'appnum', 'emax', 'emin', 'l_score',
-          'r_score', 'm_score', 'l_num', 'r_num', 'm_num', 'l_min', 'l_max', 'r_min', 'r_max'
-          ]
+
+GRAPH2 = [
+    'pred',
+    #'new',
+    'vmax',
+    'vmin',
+    'vavg',
+    'appnum',
+    'emax',
+    'emin',
+    'l_score', 'r_score', 'm_score',
+    'l_min', 'l_max', 'r_min', 'r_max']
 
 
 def train_data():
     logger.info('start')
 
-    with open('tfidf_all_pred_0512.pkl', 'rb') as f:
+    with open('tfidf_all_pred2_0512.pkl', 'rb') as f:
         x = pickle.load(f).astype(np.float32)
     x_train = x  # np.c_[x_train, x]
     logger.info('{}'.format(x_train.shape))
@@ -92,19 +104,21 @@ def train_data():
     x_train = np.c_[x_train, x]
     logger.info('{}'.format(x_train.shape))
 
-    x = pd.read_csv('clique_data_0509.csv')[GRAPH1].values
+    #x = pd.read_csv('cluster_data_0512.csv')[GRAPH0].values
+    #x_train = np.c_[x_train, x]
+    # logger.info('{}'.format(x_train.shape))
+
+    x = pd.read_csv('clique_data_0509.csv')[GRAPH0].values
     x_train = np.c_[x_train, x]
     logger.info('{}'.format(x_train.shape))
 
-    x = pd.read_csv('clique_data_2_0509.csv')[GRAPH1].values
+    x = pd.read_csv('clique_data_2_0509.csv')[GRAPH2].values
     x_train = np.c_[x_train, x]
     logger.info('{}'.format(x_train.shape))
 
-    x = pd.read_csv('clique_data_0506.csv')[GRAPH1].values
+    x = pd.read_csv('clique_data_0506.csv')[GRAPH0].values
     x_train = np.c_[x_train, x]
     logger.info('{}'.format(x_train.shape))
-
-    # x_train = x_train[:, FEATURE]
 
     x_train[np.isnan(x_train)] = -100
     x_train[np.isinf(x_train)] = -100
@@ -115,14 +129,13 @@ import dask.array as da
 
 def test_data():
     logger.info('start')
-
-    with open('test_preds_0512.pkl', 'rb') as f:
+    with open('test_preds2_0512.pkl', 'rb') as f:
         preds = pickle.load(f).astype(np.float32)
     x = preds.reshape((-1, 1))
     x = da.from_array(x, chunks=CHUNK_SIZE)
     x_test = x  # da.concatenate([x_test, x], axis=1)
 
-    with open('test_preds2_0516.pkl', 'rb') as f:
+    with open('test_preds2_0515.pkl', 'rb') as f:
         preds = pickle.load(f).astype(np.float32)
     x = preds.reshape((-1, 1))
     x = da.from_array(x, chunks=CHUNK_SIZE)
@@ -150,19 +163,21 @@ def test_data():
     x = da.from_array(x, chunks=CHUNK_SIZE)
     x_test = da.concatenate([x_test, x], axis=1)
 
-    x = pd.read_csv('clique_data_test_0509.csv')[GRAPH1].values
+    #x = pd.read_csv('cluster_data_test_0512.csv')[GRAPH0].values
+    #x = da.from_array(x, chunks=CHUNK_SIZE)
+    #x_test = da.concatenate([x_test, x], axis=1)
+
+    x = pd.read_csv('clique_data_test_0509.csv')[GRAPH0].values
     x = da.from_array(x, chunks=CHUNK_SIZE)
     x_test = da.concatenate([x_test, x], axis=1)
 
-    x = pd.read_csv('clique_data_test_2_0509.csv')[GRAPH1].values
+    x = pd.read_csv('clique_data_test_2_0509.csv')[GRAPH2].values
     x = da.from_array(x, chunks=CHUNK_SIZE)
     x_test = da.concatenate([x_test, x], axis=1)
 
-    x = pd.read_csv('clique_data_test_0506.csv')[GRAPH1].values
+    x = pd.read_csv('clique_data_test_0506.csv')[GRAPH0].values
     x = da.from_array(x, chunks=CHUNK_SIZE)
     x_test = da.concatenate([x_test, x], axis=1)
-
-    # x_test = x_test[:, FEATURE]
 
     return x_test
 
@@ -215,7 +230,7 @@ if __name__ == '__main__':
     logger.info('load start')
     df_train = pd.read_csv('../data/train.csv', usecols=['is_duplicate'])
     df_test = pd.read_csv('../data/test.csv', usecols=['test_id'])
-
+    """
     ################
     # x_train_rev = train_data_rev()
     x_train = train_data()
@@ -248,8 +263,8 @@ if __name__ == '__main__':
                   'n_estimators': [10000],
                   'min_child_weight': [20],
                   'colsample_bytree': [0.6],
-                  'boosting_type': ['dart'],  # ['gbdt'],
-                  'xgboost_dart_mode': [False],
+                  #'boosting_type': ['dart'],  # ['gbdt'],
+                  #'xgboost_dart_mode': [False],
                   'num_leaves': [128],
                   'subsample': [0.9],
                   'min_child_samples': [40],
@@ -359,7 +374,7 @@ if __name__ == '__main__':
         pickle.dump(clf, f, -1)
     del x_train
     gc.collect()
-
+    """
     with open('model_ft.pkl', 'rb') as f:
         clf = pickle.load(f)
     imp = pd.DataFrame(clf.feature_importances_, columns=['imp'])

@@ -32,7 +32,8 @@ GRAPH = ['cnum',
          #'vavg',
          'l_num', 'r_num', 'm_num',
          'l_cnum_max', 'r_cnum_max', 'l_cnum_min', 'r_cnum_min', 'l_cnum_avg', 'r_cnum_avg',
-         'l_eign_cent', 'r_eign_cent'
+         'l_eign_cent', 'r_eign_cent',
+         'n_med'
          ]
 
 
@@ -159,7 +160,7 @@ def train_data():
     x_train = np.c_[x_train, x]
     logger.info('{}'.format(x_train.shape))
 
-    x = pd.read_csv('clique_data_0512.csv')[GRAPH].values
+    x = pd.read_csv('clique_data_0515.csv')[GRAPH].values
     x_train = np.c_[x_train, x]
     logger.info('{}'.format(x_train.shape))
 
@@ -170,7 +171,7 @@ def train_data():
     x_train[np.isnan(x_train)] = -100
     x_train[np.isinf(x_train)] = -100
 
-    with open('tfidf_all_pred_0512.pkl', 'rb') as f:
+    with open('tfidf_all_pred_0516.pkl', 'rb') as f:
         x = pickle.load(f).astype(np.float32)
     x_train = np.c_[x_train, x]
     logger.info('{}'.format(x_train.shape))
@@ -338,7 +339,7 @@ def test_data():
     x_test = da.concatenate([x_test, x], axis=1)
     logger.info('{}'.format(x_test.shape))
 
-    x = pd.read_csv('clique_data_test_0512.csv')[GRAPH].values
+    x = pd.read_csv('clique_data_test_0515.csv')[GRAPH].values
     x = da.from_array(x, chunks=CHUNK_SIZE)
     x_test = da.concatenate([x_test, x], axis=1)
 
@@ -347,7 +348,7 @@ def test_data():
     x = da.from_array(x, chunks=CHUNK_SIZE)
     x_test = da.concatenate([x_test, x], axis=1)
 
-    with open('test_preds_0512.pkl', 'rb') as f:
+    with open('test_preds_0516.pkl', 'rb') as f:
         preds = pickle.load(f).astype(np.float32)
     x = preds.reshape((-1, 1))
     x = da.from_array(x, chunks=CHUNK_SIZE)
@@ -417,13 +418,13 @@ if __name__ == '__main__':
     from sklearn.cross_validation import train_test_split
 
     # x_train, x_valid, y_train, y_valid = train_test_split(x_train, y_train, test_size=0.2, random_state=4242)
-    all_params = {'max_depth': [5],
+    all_params = {'max_depth': [8],
                   'learning_rate': [0.01],  # [0.06, 0.1, 0.2],
                   'n_estimators': [10000],
                   'min_child_weight': [10],
                   'colsample_bytree': [0.7],
                   'boosting_type': ['gbdt'],
-                  'num_leaves': [20],
+                  'num_leaves': [1300],
                   'subsample': [0.9],
                   'min_child_samples': [100],
                   'reg_alpha': [1],
@@ -500,7 +501,7 @@ if __name__ == '__main__':
             else:
                 list_best_iter.append(params['n_estimators'])
             # break
-        with open('tfidf_all_pred2_0512.pkl', 'wb') as f:
+        with open('tfidf_all_pred2_0516.pkl', 'wb') as f:
             pickle.dump(all_pred, f, -1)
 
         logger.info('trees: {}'.format(list_best_iter))
@@ -559,7 +560,7 @@ if __name__ == '__main__':
         p_test = clf.predict_proba(d)
         preds.append(p_test)
     p_test = np.concatenate(preds)[:, 1]
-    with open('test_preds2_0512.pkl', 'wb') as f:
+    with open('test_preds2_0516.pkl', 'wb') as f:
         pickle.dump(p_test, f, -1)
 
     sub = pd.DataFrame()
