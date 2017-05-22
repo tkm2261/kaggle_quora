@@ -14,7 +14,7 @@ df = pandas.read_csv('../data/train.csv')
 #    x = pickle.load(f).astype(numpy.float32)
 # with open('tfidf_all_pred2_0506.pkl', 'rb') as f:
 #    x = pickle.load(f).astype(numpy.float32)
-with open('tfidf_all_pred2_0516.pkl', 'rb') as f:
+with open('tfidf_all_pred2_0520.pkl', 'rb') as f:
     x = pickle.load(f).astype(numpy.float32)
 df['pred'] = x
 
@@ -216,4 +216,4 @@ print(log_loss(aaa['label'].values, aaa['pred'].values, sample_weight=sw))
 print(roc_auc_score(aaa['label'].values, aaa['new'].values, sample_weight=sw))
 print(log_loss(aaa['label'].values, aaa['new'].values, sample_weight=sw))
 
-aaa.to_csv('clique_data_0516.csv', index=False)
+aaa.to_csv('clique_data_0520.csv', index=False)

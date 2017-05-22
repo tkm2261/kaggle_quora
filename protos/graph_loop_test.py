@@ -1,3 +1,4 @@
+
 from itertools import combinations
 from tqdm import tqdm
 import pickle
@@ -16,12 +17,19 @@ all_cols = ['cnum', 'pred', 'new', 'vmax', 'vmin', 'vavg', 'appnum', 'emax', 'em
             #'l_med', 'l_std', 'l_skew', 'l_kurt',
             #'r_med', 'r_std', 'r_skew', 'r_kurt'
             'l_cnum_max', 'r_cnum_max', 'l_cnum_min', 'r_cnum_min', 'l_cnum_avg', 'r_cnum_avg',
-            'l_eign_cent', 'r_eign_cent'
+            'l_eign_cent', 'r_eign_cent',
+            'n_med', 'med_min', 'med_max', 'med_avg',
+            'med_l_min', 'med_l_max', 'med_l_avg',
+            'med_r_min', 'med_r_max', 'med_r_avg'
+
             ]
 
 df = pandas.read_csv('../data/test.csv')
-submit = pandas.read_csv('submit.csv')
-df['pred'] = submit['is_duplicate'].values
+#submit = pandas.read_csv('submit.csv')
+with open('test_preds2_0520.pkl', 'rb') as f:
+    x = pickle.load(f).astype(numpy.float32)
+
+df['pred'] = x  # submit['is_duplicate'].values
 
 df2 = pandas.read_csv('../data/train.csv')
 pos_rate = df2['is_duplicate'].sum() / df2.shape[0]
@@ -42,8 +50,8 @@ map_score.update(map_score2)
 edges = [(k[0], k[1], v) for k, v in map_score.items()]
 G.add_weighted_edges_from(edges)
 
-map_eign_cent = nx.eigenvector_centrality(G)
-
+with open('map_eign_cent_test.pkl', 'rb') as f:
+    map_eign_cent = pickle.load(f)
 
 import copy
 cnt = 0
@@ -68,7 +76,7 @@ for cli in tqdm(cliques):
     #    continue
     if len(cli) == 1:
         q1 = list(cli)[0]
-        print(q1)
+        # print(q1)
         map_result[q1, q1] = 1.
         map_cnum[q1, q1] = 1
         map_data[q1, q1] = (1., 1., 1.)
@@ -121,10 +129,10 @@ for qid, q1, q2 in tqdm(df[['test_id', 'question1', 'question2']].values):
         list_qid.append(qid)
     new_pred = map_score[q1, q2]
 
-    cnum = map_cnum.get((q1, q2), 2)
+    cnum = map_cnum.get((q1, q2), -1)
     data = list(map_data.get((q1, q2), (new_pred, new_pred, new_pred)))
     pred = map_score[key]
-    appnum = map_app.get(key, -100)
+    appnum = map_app.get(key, 0)
 
     l_num = len(G[key[0]])
     r_num = len(G[key[1]])
@@ -163,11 +171,41 @@ for qid, q1, q2 in tqdm(df[['test_id', 'question1', 'question2']].values):
     l_cnum_avg = numpy.mean(l_cnums)
     r_cnum_avg = numpy.mean(r_cnums)
 
-    l_eign_cent = map_eign_cent[key[0]]
-    r_eign_cent = map_eign_cent[key[1]]
-
     emin = map_min.get(key, new_pred)
     emax = map_max.get(key, new_pred)
+
+    l_eign_cent = map_eign_cent.get(key[0], 0)
+    r_eign_cent = map_eign_cent.get(key[1], 0)
+
+    nodes = set(G[key[0]]) & set(G[key[1]]) - set(key)
+    n_med = len(nodes)
+    med_weights = []
+    med_l_weights = []
+    med_r_weights = []
+    for n in nodes:
+        score1 = G[key[0]][n]['weight']
+        score2 = + G[n][key[1]]['weight']
+        score = (score1 + score2) / 2
+        med_weights.append(score)
+        med_l_weights.append(score1)
+        med_r_weights.append(score1)
+    if len(med_weights) == 0:
+        med_weights = [-1]
+    if len(med_l_weights) == 0:
+        med_l_weights = [-1]
+    if len(med_r_weights) == 0:
+        med_r_weights = [-1]
+    med_min = numpy.min(med_weights)
+    med_max = numpy.max(med_weights)
+    med_avg = numpy.mean(med_weights)
+
+    med_l_min = numpy.min(med_l_weights)
+    med_l_max = numpy.max(med_l_weights)
+    med_l_avg = numpy.mean(med_l_weights)
+
+    med_r_min = numpy.min(med_r_weights)
+    med_r_max = numpy.max(med_r_weights)
+    med_r_avg = numpy.mean(med_r_weights)
 
     #'cnum', 'pred', 'new', 'vmax','vmin', 'vavg'
     list_data.append([cnum, pred, new_pred] + data + [appnum, emax,
@@ -176,9 +214,12 @@ for qid, q1, q2 in tqdm(df[['test_id', 'question1', 'question2']].values):
                                                       #l_med, l_std, l_skew, l_kurt,
                                                       #r_med, r_std, r_skew, r_kurt
                                                       l_cnum_max, r_cnum_max, l_cnum_min, r_cnum_min, l_cnum_avg, r_cnum_avg,
-                                                      l_eign_cent, r_eign_cent
+                                                      l_eign_cent, r_eign_cent,
+                                                      n_med, med_min, med_max, med_avg,
+                                                      med_l_min, med_l_max, med_l_avg,
+                                                      med_r_min, med_r_max, med_r_avg
                                                       ])
 
 
 list_data = pandas.DataFrame(list_data, columns=all_cols)
-list_data.to_csv('loop3_data_test_0512.csv', index=False)
+list_data.to_csv('loop3_data_test_0517.csv', index=False)

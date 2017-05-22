@@ -22,6 +22,18 @@ logger = getLogger(__name__)
 
 from features_tmp import FEATURE
 
+GRAPH = ['cnum',
+         #'pred',
+         #'new',
+         'vmax',
+         'vmin',
+         'vavg',
+         'l_num', 'r_num', 'm_num',
+         'l_cnum_max', 'r_cnum_max', 'l_cnum_min', 'r_cnum_min', 'l_cnum_avg', 'r_cnum_avg',
+         'l_eign_cent', 'r_eign_cent',
+         'n_med'
+         ]
+
 
 if __name__ == '__main__':
     from logging import StreamHandler, DEBUG, Formatter, FileHandler
@@ -35,36 +47,13 @@ if __name__ == '__main__':
     logger.addHandler(handler)
 
     logger.info('load start')
-    df_train = pd.read_csv('../data/train_clean2.csv')
-    x_train = df_train[['is_duplicate', 'question1', 'question2']].values
-    y_train = df_train['is_duplicate']
-    del df_train
-    gc.collect()
+    df_train = pd.read_csv('../data/train.csv')
+    with open('tfidf_all_pred_final_0512.pkl', 'rb') as f:
+        pred = pickle.load(f)
 
-    logger.info('x_shape: {}'.format(x_train.shape))
-    pos_rate = 0.165
-    pos_num = y_train.sum()
-    neg_num = y_train.shape[0] - y_train.sum()
-    logger.info('pos_rate: %s, target pos_rate: %s, pos_num: %s' % (pos_num / y_train.shape[0], pos_rate, pos_num))
+    df_train['pred'] = pred
+    x = pd.read_csv('clique_data_0517.csv')
+    for col in GRAPH:
+        df_train[col] = x[col]
 
-    w = (neg_num * pos_rate) / (pos_num * (1 - pos_rate))
-    sample_weight = np.where(y_train == 1, w, 1)
-    calc_pos_rate = (w * pos_num) / (w * pos_num + neg_num)
-    logger.info('calc pos_rate: %s' % calc_pos_rate)
-
-    logger.info('sampling start')
-
-    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=871)
-
-    for train, test in cv.split(x_train, y_train):
-        trn_x = x_train[train]
-        val_x = x_train[test]
-        trn_y = y_train[train]
-        val_y = y_train[test]
-        trn_w = sample_weight[train]
-        val_w = sample_weight[test]
-
-        with open('tfidf_val_0.pkl', 'rb') as f:
-            pred, val_y, val_w = pickle.load(f)
-        pd.DataFrame(np.c_[pred.reshape(-1, 1), val_y.reshape(-1, 1), val_x]).to_csv('check_pred.csv')
-        break
+    df_train.to_csv('check_data.csv')

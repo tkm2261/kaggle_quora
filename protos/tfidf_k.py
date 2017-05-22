@@ -20,8 +20,8 @@ import gc
 from logging import getLogger
 logger = getLogger(__name__)
 from tqdm import tqdm
-from features_tmp2 import FEATURE
-#from features_tmp1 import FEATURE as FEATURE2
+from features_tmp3 import FEATURE
+# from features_tmp1 import FEATURE as FEATURE2
 
 CHUNK_SIZE = 100000
 GRAPH = ['cnum',
@@ -164,14 +164,21 @@ def train_data():
     x_train = np.c_[x_train, x]
     logger.info('{}'.format(x_train.shape))
 
+    x = pd.read_csv('loop_data_0512.csv')['cnum'].values
+    x_train = np.c_[x_train, x]
+    logger.info('{}'.format(x_train.shape))
+
     x = pd.read_csv('loop2_data_0512.csv')['cnum'].values
     x_train = np.c_[x_train, x]
     logger.info('{}'.format(x_train.shape))
 
-    x_train[np.isnan(x_train)] = -100
-    x_train[np.isinf(x_train)] = -100
+    x = pd.read_csv('loop3_data_0512.csv')['cnum'].values
+    x_train = np.c_[x_train, x]
+    logger.info('{}'.format(x_train.shape))
 
-    with open('tfidf_all_pred_0516.pkl', 'rb') as f:
+    # x_train[np.isnan(x_train)] = -100
+    # x_train[np.isinf(x_train)] = -100
+    with open('tfidf_all_pred_0520.pkl', 'rb') as f:
         x = pickle.load(f).astype(np.float32)
     x_train = np.c_[x_train, x]
     logger.info('{}'.format(x_train.shape))
@@ -343,12 +350,22 @@ def test_data():
     x = da.from_array(x, chunks=CHUNK_SIZE)
     x_test = da.concatenate([x_test, x], axis=1)
 
+    x = pd.read_csv('loop_data_test_0512.csv')['cnum'].values
+    x = x.reshape((-1, 1))
+    x = da.from_array(x, chunks=CHUNK_SIZE)
+    x_test = da.concatenate([x_test, x], axis=1)
+
     x = pd.read_csv('loop2_data_test_0512.csv')['cnum'].values
     x = x.reshape((-1, 1))
     x = da.from_array(x, chunks=CHUNK_SIZE)
     x_test = da.concatenate([x_test, x], axis=1)
 
-    with open('test_preds_0516.pkl', 'rb') as f:
+    x = pd.read_csv('loop3_data_test_0512.csv')['cnum'].values
+    x = x.reshape((-1, 1))
+    x = da.from_array(x, chunks=CHUNK_SIZE)
+    x_test = da.concatenate([x_test, x], axis=1)
+
+    with open('test_preds_0520.pkl', 'rb') as f:
         preds = pickle.load(f).astype(np.float32)
     x = preds.reshape((-1, 1))
     x = da.from_array(x, chunks=CHUNK_SIZE)
@@ -418,7 +435,7 @@ if __name__ == '__main__':
     from sklearn.cross_validation import train_test_split
 
     # x_train, x_valid, y_train, y_valid = train_test_split(x_train, y_train, test_size=0.2, random_state=4242)
-    all_params = {'max_depth': [8],
+    all_params = {'max_depth': [10],
                   'learning_rate': [0.01],  # [0.06, 0.1, 0.2],
                   'n_estimators': [10000],
                   'min_child_weight': [10],
@@ -501,7 +518,7 @@ if __name__ == '__main__':
             else:
                 list_best_iter.append(params['n_estimators'])
             # break
-        with open('tfidf_all_pred2_0516.pkl', 'wb') as f:
+        with open('tfidf_all_pred2_0520.pkl', 'wb') as f:
             pickle.dump(all_pred, f, -1)
 
         logger.info('trees: {}'.format(list_best_iter))
@@ -554,13 +571,13 @@ if __name__ == '__main__':
     for i in range(int(df_test.shape[0] / CHUNK_SIZE) + 1):
         d = x_test[i * CHUNK_SIZE: (i + 1) * CHUNK_SIZE].compute()
 
-        d[np.isnan(d)] = -100
-        d[np.isinf(d)] = -100
+        # d[np.isnan(d)] = -100
+        # d[np.isinf(d)] = -100
 
         p_test = clf.predict_proba(d)
         preds.append(p_test)
     p_test = np.concatenate(preds)[:, 1]
-    with open('test_preds2_0516.pkl', 'wb') as f:
+    with open('test_preds2_0520.pkl', 'wb') as f:
         pickle.dump(p_test, f, -1)
 
     sub = pd.DataFrame()

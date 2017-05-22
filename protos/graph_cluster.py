@@ -16,7 +16,7 @@ df = pandas.read_csv('../data/train.csv')
 #    x = pickle.load(f).astype(numpy.float32)
 # with open('tfidf_all_pred2_0506.pkl', 'rb') as f:
 #    x = pickle.load(f).astype(numpy.float32)
-with open('tfidf_all_pred2_0512.pkl', 'rb') as f:
+with open('tfidf_all_pred2_0517.pkl', 'rb') as f:
     x = pickle.load(f).astype(numpy.float32)
 df['pred'] = x
 
@@ -35,8 +35,8 @@ map_dup = dict(((x[0], x[1]), x[2]) for x in df[['question1', 'question2', 'is_d
 
 
 cluster = {}
-#cl = community.best_partition(G)
-cl = nx.clustering(G)
+cl = community.best_partition(G)
+#cl = nx.clustering(G)
 for node, c in cl.items():
     c = int(c)
     if c in cluster:
@@ -107,7 +107,11 @@ use_cols = ['cnum', 'pred', 'new', 'vmax', 'vmin', 'vavg', 'appnum', 'emax', 'em
             #'l_med', 'l_std', 'l_skew', 'l_kurt',
             #'r_med', 'r_std', 'r_skew', 'r_kurt'
             'l_cnum_max', 'r_cnum_max', 'l_cnum_min', 'r_cnum_min', 'l_cnum_avg', 'r_cnum_avg',
-            'l_eign_cent', 'r_eign_cent'
+            'l_eign_cent', 'r_eign_cent',
+            'n_med', 'med_min', 'med_max', 'med_avg',
+            'med_l_min', 'med_l_max', 'med_l_avg',
+            'med_r_min', 'med_r_max', 'med_r_avg'
+
             ]
 
 # for key, new in map_result.items():
@@ -160,6 +164,36 @@ for q1, q2 in tqdm(df[['question1', 'question2']].values):
     l_eign_cent = 0
     r_eign_cent = 0
 
+    nodes = set(G[key[0]]) & set(G[key[1]]) - set(key)
+    n_med = len(nodes)
+    med_weights = []
+    med_l_weights = []
+    med_r_weights = []
+    for n in nodes:
+        score1 = G[key[0]][n]['weight']
+        score2 = + G[n][key[1]]['weight']
+        score = (score1 + score2) / 2
+        med_weights.append(score)
+        med_l_weights.append(score1)
+        med_r_weights.append(score1)
+    if len(med_weights) == 0:
+        med_weights = [-1]
+    if len(med_l_weights) == 0:
+        med_l_weights = [-1]
+    if len(med_r_weights) == 0:
+        med_r_weights = [-1]
+    med_min = numpy.min(med_weights)
+    med_max = numpy.max(med_weights)
+    med_avg = numpy.mean(med_weights)
+
+    med_l_min = numpy.min(med_l_weights)
+    med_l_max = numpy.max(med_l_weights)
+    med_l_avg = numpy.mean(med_l_weights)
+
+    med_r_min = numpy.min(med_r_weights)
+    med_r_max = numpy.max(med_r_weights)
+    med_r_avg = numpy.mean(med_r_weights)
+
     """
     l_med = numpy.median(l_scores)
     l_std = numpy.std(l_scores)
@@ -177,7 +211,11 @@ for q1, q2 in tqdm(df[['question1', 'question2']].values):
                                                             #l_med, l_std, l_skew, l_kurt,
                                                             #r_med, r_std, r_skew, r_kurt
                                                             l_cnum_max, r_cnum_max, l_cnum_min, r_cnum_min, l_cnum_avg, r_cnum_avg,
-                                                            l_eign_cent, r_eign_cent
+                                                            l_eign_cent, r_eign_cent,
+                                                            n_med, med_min, med_max, med_avg,
+                                                            med_l_min, med_l_max, med_l_avg,
+                                                            med_r_min, med_r_max, med_r_avg
+
                                                             ])
 aaa = pandas.DataFrame(list_res, columns=['label'] + use_cols)
 
@@ -189,4 +227,4 @@ print(log_loss(aaa['label'].values, aaa['pred'].values, sample_weight=sw))
 print(roc_auc_score(aaa['label'].values, aaa['new'].values, sample_weight=sw))
 print(log_loss(aaa['label'].values, aaa['new'].values, sample_weight=sw))
 
-aaa.to_csv('cluster2_data_0512.csv', index=False)
+aaa.to_csv('cluster_data_0517.csv', index=False)

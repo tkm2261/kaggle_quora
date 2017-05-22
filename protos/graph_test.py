@@ -24,7 +24,7 @@ all_cols = ['cnum', 'pred', 'new', 'vmax', 'vmin', 'vavg', 'appnum', 'emax', 'em
 
 df = pandas.read_csv('../data/test.csv')
 #submit = pandas.read_csv('submit.csv')
-with open('test_preds2_0512.pkl', 'rb') as f:
+with open('test_preds2_0520.pkl', 'rb') as f:
     x = pickle.load(f).astype(numpy.float32)
 
 df['pred'] = x  # submit['is_duplicate'].values
@@ -139,7 +139,7 @@ for qid, q1, q2 in tqdm(df[['test_id', 'question1', 'question2']].values):
     #    map_cnum[q1, q2] = 0
     #    map_data[q1, q2] = (new_pred, new_pred, new_pred)
     list_val.append(map_result[q1, q2])
-    cnum = map_cnum.get((q1, q2), 2)
+    cnum = map_cnum.get((q1, q2), -1)
     data = list(map_data.get((q1, q2), (new_pred, new_pred, new_pred)))
     pred = map_score[key]
     appnum = map_app[key]
@@ -233,7 +233,7 @@ for qid, q1, q2 in tqdm(df[['test_id', 'question1', 'question2']].values):
 
 
 list_data = pandas.DataFrame(list_data, columns=all_cols)
-list_data.to_csv('clique_data_test_0512.csv', index=False)
+list_data.to_csv('clique_data_test_0520.csv', index=False)
 data = list_data[use_cols].values
 if data.shape[1] != final_tree.feature_importances_.shape[0]:
     raise Exception('Not match feature num: %s %s' % (data.shape[1], final_tree.feature_importances_.shape[0]))
