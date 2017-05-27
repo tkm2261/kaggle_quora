@@ -14,7 +14,7 @@ df = pandas.read_csv('../data/train.csv')
 #    x = pickle.load(f).astype(numpy.float32)
 # with open('tfidf_all_pred2_0506.pkl', 'rb') as f:
 #    x = pickle.load(f).astype(numpy.float32)
-with open('tfidf_all_pred2_0520.pkl', 'rb') as f:
+with open('tfidf_all_pred2_0522.pkl', 'rb') as f:
     x = pickle.load(f).astype(numpy.float32)
 df['pred'] = x
 
@@ -24,9 +24,12 @@ avg_neg = df[df['is_duplicate'] == 0]['pred'].mean()
 import networkx as nx
 numpy.random.seed(111)
 G = nx.Graph()
+G.remove_edges_from(G.selfloop_edges())
 
 edges = [tuple(x) for x in df[['question1', 'question2', 'pred']].values]
 G.add_weighted_edges_from(edges)
+G.remove_edges_from(G.selfloop_edges())
+
 # G.add_weighted_edges_from(add_edges)
 map_score = dict(((x[0], x[1]), x[2]) for x in df[['question1', 'question2', 'pred']].values)
 map_dup = dict(((x[0], x[1]), x[2]) for x in df[['question1', 'question2', 'is_duplicate']].values)
@@ -216,4 +219,4 @@ print(log_loss(aaa['label'].values, aaa['pred'].values, sample_weight=sw))
 print(roc_auc_score(aaa['label'].values, aaa['new'].values, sample_weight=sw))
 print(log_loss(aaa['label'].values, aaa['new'].values, sample_weight=sw))
 
-aaa.to_csv('loop3_data_0520.csv', index=False)
+aaa.to_csv('loop3_data_0522.csv', index=False)

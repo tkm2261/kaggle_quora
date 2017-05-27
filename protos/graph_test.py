@@ -19,12 +19,14 @@ all_cols = ['cnum', 'pred', 'new', 'vmax', 'vmin', 'vavg', 'appnum', 'emax', 'em
             'l_eign_cent', 'r_eign_cent',
             'n_med', 'med_min', 'med_max', 'med_avg',
             'med_l_min', 'med_l_max', 'med_l_avg',
-            'med_r_min', 'med_r_max', 'med_r_avg'
+            'med_r_min', 'med_r_max', 'med_r_avg',
+            'l_c_max', 'l_c_min', 'l_c_avg',
+            'r_c_max', 'r_c_min', 'r_c_avg'
             ]
 
 df = pandas.read_csv('../data/test.csv')
 #submit = pandas.read_csv('submit.csv')
-with open('test_preds2_0520.pkl', 'rb') as f:
+with open('test_preds2_0526.pkl', 'rb') as f:
     x = pickle.load(f).astype(numpy.float32)
 
 df['pred'] = x  # submit['is_duplicate'].values
@@ -37,6 +39,7 @@ df2['pred'] = df2['is_duplicate'] / pos_rate * 0.165
 import networkx as nx
 G = nx.Graph()
 
+
 #edges = [tuple(x) for x in df[['question1', 'question2', 'pred']].values]
 # G.add_weighted_edges_from(edges)
 map_score = dict(((x[0], x[1]), x[2]) for x in df[['question1', 'question2', 'pred']].values)
@@ -46,7 +49,13 @@ map_score = dict(((x[0], x[1]), x[2]) for x in df[['question1', 'question2', 'pr
 map_score2 = dict(((x[0], x[1]), x[2]) for x in df2[['question1', 'question2', 'pred']].values)
 map_score.update(map_score2)
 edges = [(k[0], k[1], v) for k, v in map_score.items()]
+
 G.add_weighted_edges_from(edges)
+
+selfloop_edges = G.selfloop_edges()
+print('self loop edges: %s' % (len(selfloop_edges)))
+
+G.remove_edges_from(G.selfloop_edges())
 
 #map_eign_cent = nx.eigenvector_centrality(G, weight=None)
 # with open('map_eign_cent_test.pkl', 'wb') as f:
@@ -69,7 +78,9 @@ map_app = defaultdict(int)
 
 map_max = {}
 map_min = {}
+map_clique_data = {}
 
+print('loopstart')
 for cli in tqdm(cliques):
     # if len(cli) < 2:
     #    continue
@@ -97,6 +108,10 @@ for cli in tqdm(cliques):
     val_max = numpy.max(lval)
     val_min = numpy.min(lval)
     val_avg = numpy.mean(lval)
+    for q1, q2 in keys:
+        map_clique_data[q1] = [val_max, val_min, val_avg]
+        map_clique_data[q2] = [val_max, val_min, val_avg]
+
     """
     val_med = numpy.median(lval)
     val_std = numpy.std(lval)
@@ -152,6 +167,10 @@ for qid, q1, q2 in tqdm(df[['test_id', 'question1', 'question2']].values):
                 in map_score else map_score[to, key[0]] for to in G[key[0]]]
     r_scores = [map_score[to, key[1]] if (to, key[1])
                 in map_score else map_score[key[1], to] for to in G[key[1]]]
+    if len(l_scores) == 0:
+        l_scores = [-1]
+    if len(r_scores) == 0:
+        r_scores = [-1]
     l_score = numpy.mean(l_scores)
     r_score = numpy.mean(r_scores)
     m_score = (l_score + r_score) / 2
@@ -173,6 +192,11 @@ for qid, q1, q2 in tqdm(df[['test_id', 'question1', 'question2']].values):
     """
     l_cnums = [map_cnum.get((key[0], to), 1) for to in G[key[0]]]
     r_cnums = [map_cnum.get((to, key[1]), 1) for to in G[key[1]]]
+
+    if len(l_cnums) == 0:
+        l_cnums = [-1]
+    if len(r_cnums) == 0:
+        r_cnums = [-1]
 
     l_cnum_max = numpy.max(l_cnums)
     r_cnum_max = numpy.max(r_cnums)
@@ -217,6 +241,9 @@ for qid, q1, q2 in tqdm(df[['test_id', 'question1', 'question2']].values):
     med_r_max = numpy.max(med_r_weights)
     med_r_avg = numpy.mean(med_r_weights)
 
+    l_c_max, l_c_min, l_c_avg = map_clique_data.get(q1, [pred] * 3)
+    r_c_max, r_c_min, r_c_avg = map_clique_data.get(q2, [pred] * 3)
+
     #'cnum', 'pred', 'new', 'vmax','vmin', 'vavg'
     list_data.append([cnum, pred, new_pred] + data + [appnum, emax,
                                                       emin, l_score, r_score, m_score, l_num, r_num, m_num,
@@ -227,13 +254,14 @@ for qid, q1, q2 in tqdm(df[['test_id', 'question1', 'question2']].values):
                                                       l_eign_cent, r_eign_cent,
                                                       n_med, med_min, med_max, med_avg,
                                                       med_l_min, med_l_max, med_l_avg,
-                                                      med_r_min, med_r_max, med_r_avg
-
+                                                      med_r_min, med_r_max, med_r_avg,
+                                                      l_c_max, l_c_min, l_c_avg,
+                                                      r_c_max, r_c_min, r_c_avg
                                                       ])
 
 
 list_data = pandas.DataFrame(list_data, columns=all_cols)
-list_data.to_csv('clique_data_test_0520.csv', index=False)
+list_data.to_csv('clique_data_test_0526.csv', index=False)
 data = list_data[use_cols].values
 if data.shape[1] != final_tree.feature_importances_.shape[0]:
     raise Exception('Not match feature num: %s %s' % (data.shape[1], final_tree.feature_importances_.shape[0]))

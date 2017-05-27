@@ -43,6 +43,27 @@ GRAPH = ['cnum',
          'med_r_min', 'med_r_max', 'med_r_avg'
 
          ]
+GRAPH0520 = ['cnum',
+             'pred',
+             #'new',
+             'vmax',
+             'vmin',
+             'vavg',
+             'appnum',
+             'emax',
+             'emin',
+             'l_score', 'r_score', 'm_score',
+             'l_num', 'r_num', 'm_num',
+             'l_min', 'l_max', 'r_min', 'r_max',
+             'l_cnum_max', 'r_cnum_max', 'l_cnum_min', 'r_cnum_min', 'l_cnum_avg', 'r_cnum_avg',
+             'l_eign_cent', 'r_eign_cent',
+             'n_med', 'med_min', 'med_max', 'med_avg',
+             'med_l_min', 'med_l_max', 'med_l_avg',
+             'med_r_min', 'med_r_max', 'med_r_avg',
+             'l_c_max', 'l_c_min', 'l_c_avg',
+             'r_c_max', 'r_c_min', 'r_c_avg'
+
+             ]
 GRAPHA = ['cnum',
           'pred',
           ]
@@ -102,7 +123,12 @@ def train_data():
     x_train = np.c_[x_train, x]
     logger.info('{}'.format(x_train.shape))
 
-    with open('tfidf_all_pred3_0520.pkl', 'rb') as f:
+    with open('tfidf_all_pred2_0520.pkl', 'rb') as f:
+        x = pickle.load(f).astype(np.float32)
+    x_train = np.c_[x_train, x]
+    logger.info('{}'.format(x_train.shape))
+
+    with open('tfidf_all_pred2_0525.pkl', 'rb') as f:
         x = pickle.load(f).astype(np.float32)
     x_train = np.c_[x_train, x]
     logger.info('{}'.format(x_train.shape))
@@ -115,7 +141,11 @@ def train_data():
     x_train = np.c_[x_train, x]
     logger.info('{}'.format(x_train.shape))
 
-    x = pd.read_csv('clique_data_0520.csv')[GRAPH].values
+    x = pd.read_csv('clique_data_0520.csv')[GRAPH0520].values
+    x_train = np.c_[x_train, x]
+    logger.info('{}'.format(x_train.shape))
+
+    x = pd.read_csv('clique_data_0525.csv')[GRAPH0520].values
     x_train = np.c_[x_train, x]
     logger.info('{}'.format(x_train.shape))
 
@@ -154,11 +184,11 @@ def train_data():
         x = pickle.load(f).astype(np.float32)
     x_train = np.c_[x_train, x]
     logger.info('{}'.format(x_train.shape))
-    """
+
     x = pd.read_csv('train_magic2.csv').values.astype(np.float32)
     x_train = np.c_[x_train, x]
     logger.info('{}'.format(x_train.shape))
-    """
+
     x_train[np.isnan(x_train)] = -100
     x_train[np.isinf(x_train)] = -100
     #x_train = x_train[:, FEATURE]
@@ -205,7 +235,14 @@ def test_data():
     x_test = da.concatenate([x_test, x], axis=1)
     logger.info('{}'.format(x_test.shape))
 
-    with open('test_preds3_0520.pkl', 'rb') as f:
+    with open('test_preds2_0520.pkl', 'rb') as f:
+        preds = pickle.load(f).astype(np.float32)
+    x = preds.reshape((-1, 1))
+    x = da.from_array(x, chunks=CHUNK_SIZE)
+    x_test = da.concatenate([x_test, x], axis=1)
+    logger.info('{}'.format(x_test.shape))
+
+    with open('test_preds2_0525.pkl', 'rb') as f:
         preds = pickle.load(f).astype(np.float32)
     x = preds.reshape((-1, 1))
     x = da.from_array(x, chunks=CHUNK_SIZE)
@@ -222,7 +259,12 @@ def test_data():
     x_test = da.concatenate([x_test, x], axis=1)
     logger.info('{}'.format(x_test.shape))
 
-    x = pd.read_csv('clique_data_test_0520.csv')[GRAPH].values
+    x = pd.read_csv('clique_data_test_0520.csv')[GRAPH0520].values
+    x = da.from_array(x, chunks=CHUNK_SIZE)
+    x_test = da.concatenate([x_test, x], axis=1)
+    logger.info('{}'.format(x_test.shape))
+
+    x = pd.read_csv('clique_data_test_0525.csv')[GRAPH0520].values
     x = da.from_array(x, chunks=CHUNK_SIZE)
     x_test = da.concatenate([x_test, x], axis=1)
     logger.info('{}'.format(x_test.shape))
@@ -267,20 +309,19 @@ def test_data():
     x_test = da.concatenate([x_test, x], axis=1)
     logger.info('{}'.format(x_test.shape))
 
-    #x_test = x_test[:, FEATURE]
-
     with open('test_magic.pkl', 'rb') as f:
         x = pickle.load(f).astype(np.float32)
         x = da.from_array(x, chunks=CHUNK_SIZE)
     x_test = da.concatenate([x_test, x], axis=1)
     logger.info('{}'.format(x_test.shape))
-    """
+
     x = pd.read_csv('test_magic2.csv').values
     x = x.reshape((-1, 1))
     x = da.from_array(x, chunks=CHUNK_SIZE)
     x_test = da.concatenate([x_test, x], axis=1)
     logger.info('{}'.format(x_test.shape))
-    """
+
+    #x_test = x_test[:, FEATURE]
     return x_test
 
 
@@ -361,8 +402,8 @@ if __name__ == '__main__':
     # x_train, x_valid, y_train, y_valid = train_test_split(x_train, y_train, test_size=0.2, random_state=4242)
 
     all_params = {'max_depth': [6],
-                  'learning_rate': [0.01],  # [0.06, 0.1, 0.2],
-                  'n_estimators': [10000],
+                  'learning_rate': [0.001],  # [0.06, 0.1, 0.2],
+                  'n_estimators': [100000],
                   'min_child_weight': [20],
                   'colsample_bytree': [0.8],
                   #'boosting_type': ['dart'],  # ['gbdt'],
@@ -375,7 +416,7 @@ if __name__ == '__main__':
                   'max_bin': [5000],
                   'min_split_gain': [0.1],
                   'silent': [True],
-                  'seed': [226]
+                  'seed': [6436]
                   }
 
     min_score = (100, 100, 100)

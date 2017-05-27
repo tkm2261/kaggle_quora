@@ -26,7 +26,7 @@ all_cols = ['cnum', 'pred', 'new', 'vmax', 'vmin', 'vavg', 'appnum', 'emax', 'em
 
 df = pandas.read_csv('../data/test.csv')
 #submit = pandas.read_csv('submit.csv')
-with open('test_preds2_0520.pkl', 'rb') as f:
+with open('test_preds2_0522.pkl', 'rb') as f:
     x = pickle.load(f).astype(numpy.float32)
 
 df['pred'] = x  # submit['is_duplicate'].values
@@ -49,6 +49,7 @@ map_score2 = dict(((x[0], x[1]), x[2]) for x in df2[['question1', 'question2', '
 map_score.update(map_score2)
 edges = [(k[0], k[1], v) for k, v in map_score.items()]
 G.add_weighted_edges_from(edges)
+G.remove_edges_from(G.selfloop_edges())
 
 with open('map_eign_cent_test.pkl', 'rb') as f:
     map_eign_cent = pickle.load(f)
@@ -222,4 +223,4 @@ for qid, q1, q2 in tqdm(df[['test_id', 'question1', 'question2']].values):
 
 
 list_data = pandas.DataFrame(list_data, columns=all_cols)
-list_data.to_csv('loop3_data_test_0517.csv', index=False)
+list_data.to_csv('loop3_data_test_0522.csv', index=False)

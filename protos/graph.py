@@ -4,8 +4,24 @@ import pickle
 import pandas
 import numpy
 from scipy.stats import skew, kurtosis
+import networkx as nx
+
+G = nx.Graph()
+
+df = pandas.read_csv('../data/test.csv')
+edges = [tuple(x) for x in df[['question1', 'question2']].values]
+G.add_edges_from(edges)
 
 df = pandas.read_csv('../data/train.csv')
+edges = [tuple(x) for x in df[['question1', 'question2']].values]
+G.add_edges_from(edges)
+
+selfloop_edges = G.selfloop_edges()
+
+print('self loop edges: %s' % (len(selfloop_edges)))
+G.remove_edges_from(selfloop_edges)
+
+cliques = sorted(list(nx.find_cliques(G)), key=lambda x: (len(x), max(map(str, x))))
 
 # with open('tfidf_all_pred_final_0512.pkl', 'rb') as f:
 #    x = pickle.load(f).astype(numpy.float32)
@@ -14,19 +30,24 @@ df = pandas.read_csv('../data/train.csv')
 #    x = pickle.load(f).astype(numpy.float32)
 # with open('tfidf_all_pred2_0506.pkl', 'rb') as f:
 #    x = pickle.load(f).astype(numpy.float32)
-with open('tfidf_all_pred2_0520.pkl', 'rb') as f:
+with open('tfidf_all_pred2_0526.pkl', 'rb') as f:
     x = pickle.load(f).astype(numpy.float32)
 df['pred'] = x
 
 avg_pos = df[df['is_duplicate'] == 1]['pred'].mean()
 avg_neg = df[df['is_duplicate'] == 0]['pred'].mean()
 
-import networkx as nx
+
 numpy.random.seed(111)
 G = nx.Graph()
 
 edges = [tuple(x) for x in df[['question1', 'question2', 'pred']].values]
 G.add_weighted_edges_from(edges)
+selfloop_edges = G.selfloop_edges()
+
+print('self loop edges: %s' % (len(selfloop_edges)))
+G.remove_edges_from(selfloop_edges)
+
 # G.add_weighted_edges_from(add_edges)
 map_score = dict(((x[0], x[1]), x[2]) for x in df[['question1', 'question2', 'pred']].values)
 map_dup = dict(((x[0], x[1]), x[2]) for x in df[['question1', 'question2', 'is_duplicate']].values)
@@ -37,7 +58,6 @@ map_dup = dict(((x[0], x[1]), x[2]) for x in df[['question1', 'question2', 'is_d
 with open('map_eign_cent_train.pkl', 'rb') as f:
     map_eign_cent = pickle.load(f)
 
-cliques = sorted(list(nx.find_cliques(G)), key=lambda x: (len(x), max(map(str, x))))
 
 import copy
 from itertools import combinations
@@ -52,6 +72,8 @@ map_app = defaultdict(int)
 map_max = {}
 map_min = {}
 
+map_clique_data = {}
+
 for cli in tqdm(cliques):
     # if len(cli) < 3:
     #    continue
@@ -62,9 +84,16 @@ for cli in tqdm(cliques):
         elif (q2, q1) in map_score:
             keys[q2, q1] = map_score[q2, q1]
 
+    if len(keys) == 0:
+        continue
+
     val_max = numpy.max(list(keys.values()))
     val_min = numpy.min(list(keys.values()))
     val_avg = numpy.mean(list(keys.values()))
+
+    for q1, q2 in keys:
+        map_clique_data[q1] = [val_max, val_min, val_avg]
+        map_clique_data[q2] = [val_max, val_min, val_avg]
     """
     val_med = numpy.median(list(keys.values()))
     val_std = numpy.std(list(keys.values()))
@@ -102,7 +131,9 @@ use_cols = ['cnum', 'pred', 'new', 'vmax', 'vmin', 'vavg', 'appnum', 'emax', 'em
             'l_eign_cent', 'r_eign_cent',
             'n_med', 'med_min', 'med_max', 'med_avg',
             'med_l_min', 'med_l_max', 'med_l_avg',
-            'med_r_min', 'med_r_max', 'med_r_avg'
+            'med_r_min', 'med_r_max', 'med_r_avg',
+            'l_c_max', 'l_c_min', 'l_c_avg',
+            'r_c_max', 'r_c_min', 'r_c_avg'
             ]
 
 # for key, new in map_result.items():
@@ -184,6 +215,9 @@ for q1, q2 in tqdm(df[['question1', 'question2']].values):
     med_r_max = numpy.max(med_r_weights)
     med_r_avg = numpy.mean(med_r_weights)
 
+    l_c_max, l_c_min, l_c_avg = map_clique_data[q1]
+    r_c_max, r_c_min, r_c_avg = map_clique_data[q2]
+
     """
     l_med = numpy.median(l_scores)
     l_std = numpy.std(l_scores)
@@ -204,7 +238,9 @@ for q1, q2 in tqdm(df[['question1', 'question2']].values):
                                                             l_eign_cent, r_eign_cent,
                                                             n_med, med_min, med_max, med_avg,
                                                             med_l_min, med_l_max, med_l_avg,
-                                                            med_r_min, med_r_max, med_r_avg
+                                                            med_r_min, med_r_max, med_r_avg,
+                                                            l_c_max, l_c_min, l_c_avg,
+                                                            r_c_max, r_c_min, r_c_avg
                                                             ])
 aaa = pandas.DataFrame(list_res, columns=['label'] + use_cols)
 
@@ -216,4 +252,4 @@ print(log_loss(aaa['label'].values, aaa['pred'].values, sample_weight=sw))
 print(roc_auc_score(aaa['label'].values, aaa['new'].values, sample_weight=sw))
 print(log_loss(aaa['label'].values, aaa['new'].values, sample_weight=sw))
 
-aaa.to_csv('clique_data_0520.csv', index=False)
+aaa.to_csv('clique_data_0526.csv', index=False)
